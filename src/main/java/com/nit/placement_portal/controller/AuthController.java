@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
     
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
@@ -62,8 +66,8 @@ public class AuthController {
 
         tokenRepository.save(token);
 
-        System.out.println("Activation Link :");
-        System.out.println("http://localhost:8080/api/auth/complete-registration?token=" + tokenValue);
+        logger.info("Activation link generated for user : {}", regno);
+        logger.debug("Activaton Link: http://localhost:8080/api/auth/complete-registration?token={}", tokenValue);
 
         return "Activation link generated";
    }

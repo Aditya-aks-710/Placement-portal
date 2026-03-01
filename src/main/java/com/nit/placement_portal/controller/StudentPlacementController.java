@@ -8,7 +8,7 @@ import com.nit.placement_portal.model.StudentPlacement;
 import com.nit.placement_portal.repository.StudentPlacementRepository;
 
 @RestController
-@RequestMapping("/api/student-placements")
+@RequestMapping("/api/public/student-placements")
 public class StudentPlacementController {
 
     private final StudentPlacementRepository studentPlacementRepository;
