@@ -1,0 +1,152 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 220 70% 18%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 174 62% 42%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 14% 92%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 174 62% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 174 62% 42%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 70% 18%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 174 62% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 60% 24%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 60% 24%;
+    --sidebar-ring: 174 62% 42%;
+
+    /* Custom tokens */
+    --surface-elevated: 0 0% 100%;
+    --surface-glass: 220 20% 97%;
+    --gradient-primary: linear-gradient(135deg, hsl(220 70% 18%), hsl(220 60% 28%));
+    --gradient-accent: linear-gradient(135deg, hsl(174 62% 42%), hsl(174 80% 36%));
+    --gradient-hero: linear-gradient(135deg, hsl(220 70% 12%), hsl(220 60% 22%), hsl(220 50% 28%));
+    --shadow-card: 0 1px 3px hsl(220 20% 10% / 0.06), 0 4px 12px hsl(220 20% 10% / 0.04);
+    --shadow-elevated: 0 4px 24px hsl(220 20% 10% / 0.1), 0 1px 4px hsl(220 20% 10% / 0.06);
+    --shadow-glow: 0 0 20px hsl(174 62% 42% / 0.15);
+
+    --placed: 152 60% 42%;
+    --placed-foreground: 0 0% 100%;
+    --unplaced: 220 10% 60%;
+    --unplaced-foreground: 0 0% 100%;
+    --internship: 38 92% 50%;
+    --internship-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 174 62% 42%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 220 60% 24%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 220 30% 16%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 174 62% 42%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 30% 18%;
+    --input: 220 30% 18%;
+    --ring: 174 62% 42%;
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 174 62% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 30% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 30% 16%;
+    --sidebar-ring: 174 62% 42%;
+    --surface-elevated: 222 47% 10%;
+    --surface-glass: 222 47% 8%;
+    --placed: 152 60% 42%;
+    --placed-foreground: 0 0% 100%;
+    --unplaced: 220 10% 50%;
+    --unplaced-foreground: 0 0% 100%;
+    --internship: 38 92% 50%;
+    --internship-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm border border-border/50;
+    box-shadow: var(--shadow-card);
+  }
+
+  .elevated-card {
+    @apply bg-card border border-border/30;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-accent);
+  }
+
+  .glow {
+    box-shadow: var(--shadow-glow);
+  }
+}
