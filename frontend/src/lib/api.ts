@@ -18,15 +18,17 @@ function normalizeStatus(s: string | null | undefined): "placed" | "unplaced" | 
 
 function mapBackendToStudent(b: BackendStudent): Student {
   const name: string = b.name ?? b.fullName ?? "Unknown";
+  const status = normalizeStatus(b.status);
   const companyName: string | undefined = b.company ?? b.currentCompanyName ?? undefined;
+  const companyType = status === "internship" ? "internship" : "full-time";
 
   return {
-    id: b.id ?? b._id ?? "",
+    id: b.id ?? b._id ?? b.regno ?? b.regNo ?? "",
     name,
     email: b.email ?? "",
     phone: b.phone ?? "",
     avatar: b.profilePic ?? b.avatar ?? "",
-    branch: b.branch ?? "",
+    branch: b.branch ?? "Unknown",
     batch: (function(){
       if (b.batch) return b.batch;
       const reg = b.regno ?? b.regNo ?? b.regno;
@@ -36,8 +38,19 @@ function mapBackendToStudent(b: BackendStudent): Student {
       }
       return "Unknown";
     })(),
-    status: normalizeStatus(b.status),
-    currentCompany: companyName ? { name: companyName, role: b.role ?? "", package: b.package ?? "", joinDate: b.joinDate ?? "" } : undefined,
+    status,
+    currentCompany: companyName
+      ? {
+          name: companyName,
+          role: b.role ?? "",
+          package: b.packageValue ?? b.package ?? "",
+          joinDate: b.joinDate ?? "",
+          type: b.type ?? companyType,
+          duration: b.duration ?? undefined,
+          endDate: b.endDate ?? undefined,
+          logo: b.companyLogo ?? undefined,
+        }
+      : undefined,
     pastCompanies: b.pastCompanies ?? [],
     interviewExperiences: b.interviewExperiences ?? [],
     education: b.education ?? [],

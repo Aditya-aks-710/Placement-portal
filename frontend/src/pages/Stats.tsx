@@ -1,8 +1,9 @@
 import Navbar from "@/components/Navbar";
-import { mockStudents } from "@/data/mockStudents";
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Users, CheckCircle, Clock, Briefcase, TrendingUp } from "lucide-react";
+import { getStudents } from "@/lib/api";
 
 const COLORS = [
   "hsl(174, 62%, 42%)",
@@ -16,9 +17,15 @@ const COLORS = [
 ];
 
 const Stats = () => {
-  const placedCount = mockStudents.filter((s) => s.status === "placed").length;
-  const unplacedCount = mockStudents.filter((s) => s.status === "unplaced").length;
-  const internCount = mockStudents.filter((s) => s.status === "internship").length;
+  const { data: students = [], isLoading, isError, error } = useQuery({
+    queryKey: ["students"],
+    queryFn: () => getStudents(),
+  });
+  const errorMessage = error instanceof Error ? error.message : "Unable to load stats from backend.";
+
+  const placedCount = students.filter((s) => s.status === "placed").length;
+  const unplacedCount = students.filter((s) => s.status === "unplaced").length;
+  const internCount = students.filter((s) => s.status === "internship").length;
 
   const statusData = [
     { name: "Placed", value: placedCount },
@@ -28,7 +35,7 @@ const Stats = () => {
 
   const companyData = useMemo(() => {
     const map: Record<string, number> = {};
-    mockStudents.forEach((s) => {
+    students.forEach((s) => {
       if (s.currentCompany) {
         map[s.currentCompany.name] = (map[s.currentCompany.name] || 0) + 1;
       }
@@ -36,11 +43,11 @@ const Stats = () => {
     return Object.entries(map)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
-  }, []);
+  }, [students]);
 
   const branchData = useMemo(() => {
     const map: Record<string, { placed: number; total: number }> = {};
-    mockStudents.forEach((s) => {
+    students.forEach((s) => {
       if (!map[s.branch]) map[s.branch] = { placed: 0, total: 0 };
       map[s.branch].total++;
       if (s.status === "placed") map[s.branch].placed++;
@@ -51,9 +58,9 @@ const Stats = () => {
       total,
       rate: Math.round((placed / total) * 100),
     }));
-  }, []);
+  }, [students]);
 
-  const placementRate = Math.round((placedCount / mockStudents.length) * 100);
+  const placementRate = students.length > 0 ? Math.round((placedCount / students.length) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,10 +78,22 @@ const Stats = () => {
       </section>
 
       <main className="container py-8 space-y-8">
+        {isLoading && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+            Loading stats from backend...
+          </div>
+        )}
+
+        {isError && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            {errorMessage}
+          </div>
+        )}
+
         {/* Stat Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { icon: Users, label: "Total Students", value: mockStudents.length, sub: "All batches" },
+            { icon: Users, label: "Total Students", value: students.length, sub: "All batches" },
             { icon: CheckCircle, label: "Placed", value: placedCount, sub: `${placementRate}% placement rate` },
             { icon: Clock, label: "Unplaced", value: unplacedCount, sub: "Seeking opportunities" },
             { icon: Briefcase, label: "Companies", value: companyData.length, sub: "Unique recruiters" },

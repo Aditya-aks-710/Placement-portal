@@ -15,6 +15,7 @@ public class PlacementPortalApplication {
 		setIfPresent(dotenv, "APP_BOOTSTRAP_ADMIN_ENABLED");
 		setIfPresent(dotenv, "APP_BOOTSTRAP_ADMIN_USERNAME");
 		setIfPresent(dotenv, "APP_BOOTSTRAP_ADMIN_PASSWORD");
+		setIfPresent(dotenv, "APP_CORS_ALLOWED_ORIGINS");
 		SpringApplication.run(PlacementPortalApplication.class, args);
 	}
 

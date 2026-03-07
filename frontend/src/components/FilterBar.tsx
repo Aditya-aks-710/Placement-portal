@@ -17,10 +17,7 @@ interface FilterBarProps {
   onStatusChange: (value: string) => void;
   companyFilter: string;
   onCompanyChange: (value: string) => void;
-  batchFilter: string;
-  onBatchChange: (value: string) => void;
   companies: string[];
-  batches: string[];
   activeFilters: number;
   onClearFilters: () => void;
 }
@@ -32,10 +29,7 @@ const FilterBar = ({
   onStatusChange,
   companyFilter,
   onCompanyChange,
-  batchFilter,
-  onBatchChange,
   companies,
-  batches,
   activeFilters,
   onClearFilters,
 }: FilterBarProps) => {
@@ -79,6 +73,7 @@ const FilterBar = ({
             <SelectItem value="placed">Placed</SelectItem>
             <SelectItem value="unplaced">Unplaced</SelectItem>
             <SelectItem value="internship">Internship</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
           </SelectContent>
         </Select>
 
@@ -90,19 +85,6 @@ const FilterBar = ({
             <SelectItem value="all">All Companies</SelectItem>
             {companies.map((c) => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-
-        <Select value={batchFilter} onValueChange={onBatchChange}>
-          <SelectTrigger className="h-8 w-[120px] text-xs bg-card border-border/50">
-            <SelectValue placeholder="Batch" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Batches</SelectItem>
-            {batches.map((b) => (
-              <SelectItem key={b} value={b}>{b}</SelectItem>
             ))}
           </SelectContent>
         </Select>

@@ -1,4 +1,4 @@
-export type PlacementType = "placed" | "unplaced" | "internship";
+export type PlacementType = "placed" | "unplaced" | "internship" | "pending";
 
 export interface Company {
   name: string;

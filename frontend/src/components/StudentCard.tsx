@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { MapPin, Briefcase, GraduationCap } from "lucide-react";
+import { Briefcase, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Student } from "@/data/mockStudents";
 
@@ -7,11 +7,12 @@ const statusConfig = {
   placed: { label: "Placed", className: "bg-placed text-placed-foreground" },
   unplaced: { label: "Unplaced", className: "bg-unplaced text-unplaced-foreground" },
   internship: { label: "Intern", className: "bg-internship text-internship-foreground" },
+  pending: { label: "Pending", className: "bg-muted text-foreground" },
 };
 
 const StudentCard = ({ student }: { student: Student }) => {
   const navigate = useNavigate();
-  const config = statusConfig[student.status];
+  const config = statusConfig[student.status] ?? statusConfig.unplaced;
   const isClickable = student.status !== "unplaced";
 
   const initials = student.name
@@ -57,7 +58,7 @@ const StudentCard = ({ student }: { student: Student }) => {
 
           <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
             <GraduationCap className="h-3.5 w-3.5" />
-            <span>{student.branch} • {student.batch}</span>
+            <span>{student.branch} - {student.batch}</span>
           </div>
 
           {student.currentCompany && (
@@ -70,15 +71,11 @@ const StudentCard = ({ student }: { student: Student }) => {
           )}
 
           {student.currentCompany?.package && (
-            <div className="mt-1 text-xs text-muted-foreground">
-              💰 {student.currentCompany.package}
-            </div>
+            <div className="mt-1 text-xs text-muted-foreground">Package: {student.currentCompany.package}</div>
           )}
 
           {student.status === "unplaced" && (
-            <p className="mt-2 text-xs text-muted-foreground italic">
-              Currently seeking opportunities
-            </p>
+            <p className="mt-2 text-xs text-muted-foreground italic">Currently seeking opportunities</p>
           )}
 
           <div className="mt-3 flex flex-wrap gap-1">

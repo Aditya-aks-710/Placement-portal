@@ -1,5 +1,4 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { mockStudents } from "@/data/mockStudents";
 import Navbar from "@/components/Navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,16 +11,18 @@ import {
   Phone,
   Edit,
   Star,
-  ChevronRight,
   ExternalLink,
   MessageSquare,
 } from "lucide-react";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { getStudents } from "@/lib/api";
 
 const statusConfig = {
   placed: { label: "Placed", className: "bg-placed text-placed-foreground" },
   unplaced: { label: "Unplaced", className: "bg-unplaced text-unplaced-foreground" },
   internship: { label: "Intern", className: "bg-internship text-internship-foreground" },
+  pending: { label: "Pending", className: "bg-muted text-foreground" },
 };
 
 const difficultyColor = {
@@ -33,8 +34,36 @@ const difficultyColor = {
 const StudentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const student = mockStudents.find((s) => s.id === id);
+  const { data: students = [], isLoading, isError, error } = useQuery({
+    queryKey: ["students"],
+    queryFn: () => getStudents(),
+  });
+  const student = students.find((s) => s.id === id);
   const [activeTab, setActiveTab] = useState<"overview" | "interviews" | "education">("overview");
+  const errorMessage = error instanceof Error ? error.message : "Unable to load student details from backend.";
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-12 text-sm text-muted-foreground">Loading student details...</div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container py-12">
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            {errorMessage}
+          </p>
+          <Link to="/" className="mt-4 inline-block text-accent underline">Go back</Link>
+        </div>
+      </div>
+    );
+  }
 
   if (!student) {
     return (
@@ -48,8 +77,12 @@ const StudentDetail = () => {
     );
   }
 
-  const config = statusConfig[student.status];
-  const initials = student.name.split(" ").map((n) => n[0]).join("").toUpperCase();
+  const config = statusConfig[student.status] ?? statusConfig.unplaced;
+  const initials = student.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
   const colors = [
     "from-blue-500 to-indigo-600",
     "from-emerald-500 to-teal-600",
@@ -69,7 +102,6 @@ const StudentDetail = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Header */}
       <section className="gradient-hero pb-24 pt-8 px-4">
         <div className="container">
           <button
@@ -98,7 +130,7 @@ const StudentDetail = () => {
               <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-primary-foreground/60">
                 <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {student.email}</span>
                 <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" /> {student.phone}</span>
-                <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" /> {student.branch} • {student.batch}</span>
+                <span className="flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" /> {student.branch} - {student.batch}</span>
               </div>
             </div>
 
@@ -113,9 +145,7 @@ const StudentDetail = () => {
         </div>
       </section>
 
-      {/* Content */}
       <main className="container -mt-12">
-        {/* Tabs */}
         <div className="elevated-card rounded-xl p-1.5 mb-6 inline-flex gap-1">
           {tabs.map((tab) => (
             <button
@@ -134,7 +164,6 @@ const StudentDetail = () => {
 
         {activeTab === "overview" && (
           <div className="grid gap-6 lg:grid-cols-3 animate-fade-in">
-            {/* Current Company */}
             {student.currentCompany && (
               <div className="lg:col-span-2 elevated-card rounded-xl p-6">
                 <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
@@ -157,7 +186,6 @@ const StudentDetail = () => {
               </div>
             )}
 
-            {/* Skills */}
             <div className="elevated-card rounded-xl p-6">
               <h2 className="font-display text-lg font-semibold text-foreground">Skills</h2>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -198,7 +226,6 @@ const StudentDetail = () => {
               )}
             </div>
 
-            {/* Past Companies */}
             {student.pastCompanies.length > 0 && (
               <div className="lg:col-span-3 elevated-card rounded-xl p-6">
                 <h2 className="font-display text-lg font-semibold text-foreground flex items-center gap-2">
@@ -212,7 +239,7 @@ const StudentDetail = () => {
                         <h3 className="font-semibold text-foreground">{company.name}</h3>
                         <p className="text-sm text-muted-foreground">{company.role}</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {company.joinDate} – {company.endDate || "Present"} {company.duration && `(${company.duration})`}
+                          {company.joinDate} - {company.endDate || "Present"} {company.duration && `(${company.duration})`}
                         </p>
                       </div>
                       <div className="text-right">
@@ -259,7 +286,7 @@ const StudentDetail = () => {
                         <div className="absolute -left-[7px] top-1 h-3 w-3 rounded-full bg-accent" />
                         <h3 className="font-semibold text-foreground">{round.name}</h3>
                         <p className="mt-1 text-sm text-muted-foreground">{round.description}</p>
-                        <p className="mt-1 text-xs text-accent">💡 {round.tips}</p>
+                        <p className="mt-1 text-xs text-accent">Tip: {round.tips}</p>
                       </div>
                     ))}
                   </div>
