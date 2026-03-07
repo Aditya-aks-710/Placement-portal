@@ -1,6 +1,5 @@
 package com.nit.placement_portal.data;
 
-import com.nit.placement_portal.model.InterviewRound;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,7 +23,7 @@ public class MockStudentsData {
 
     public static class InterviewExperienceData {
         public String company;
-        public List<InterviewRound> rounds;
+        public List<InterviewRoundData> rounds;
         public String overallTips;
         public String difficulty;
         public int rating;
@@ -357,15 +356,15 @@ public class MockStudentsData {
         return data;
     }
 
-    private static InterviewRound createInterviewRound(String name, String description, String tips) {
-        InterviewRound round = new InterviewRound();
-        round.setRoundType(name);
-        round.setMonth("N/A");
-        round.setYear("N/A");
+    private static InterviewRoundData createInterviewRound(String name, String description, String tips) {
+        InterviewRoundData round = new InterviewRoundData();
+        round.name = name;
+        round.description = description;
+        round.tips = tips;
         return round;
     }
 
-    private static InterviewExperienceData createInterviewExperience(String company, List<InterviewRound> rounds, String overallTips, String difficulty, int rating) {
+    private static InterviewExperienceData createInterviewExperience(String company, List<InterviewRoundData> rounds, String overallTips, String difficulty, int rating) {
         InterviewExperienceData data = new InterviewExperienceData();
         data.company = company;
         data.rounds = rounds;

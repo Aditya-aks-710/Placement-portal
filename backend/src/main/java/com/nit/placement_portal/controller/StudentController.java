@@ -1,6 +1,6 @@
 package com.nit.placement_portal.controller;
 
-import com.nit.placement_portal.model.Student;
+import com.nit.placement_portal.dto.PublicStudentDTO;
 import com.nit.placement_portal.service.StudentService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,12 +17,12 @@ public class StudentController {
     }
 
     @GetMapping
-    public List<Student> getAllStudents() {
+    public List<PublicStudentDTO> getAllStudents() {
         return studentService.getAllStudents();
     }
 
     @GetMapping(params = "status")
-    public List<Student> getStudentsByStatus(@RequestParam String status) {
+    public List<PublicStudentDTO> getStudentsByStatus(@RequestParam String status) {
         return studentService.getStudentsByStatus(status);
     }
 }
