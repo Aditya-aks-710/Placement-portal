@@ -21,6 +21,15 @@ public class CompanyService {
 
     public Company createCompany(String name, String logoUrl) {
         return companyRepository.findByNameIgnoreCase(name)
+            .map(existing -> {
+                if ((existing.getLogoUrl() == null || existing.getLogoUrl().isBlank())
+                        && logoUrl != null
+                        && !logoUrl.isBlank()) {
+                    existing.setLogoUrl(logoUrl);
+                    return companyRepository.save(existing);
+                }
+                return existing;
+            })
             .orElseGet(() -> {
                 Company company = new Company();
                 company.setName(name);

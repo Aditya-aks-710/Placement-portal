@@ -1,5 +1,7 @@
 package com.nit.placement_portal.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -24,6 +26,11 @@ public class Company {
         return logoUrl;
     }
 
+    @JsonProperty("logo")
+    public String getLogo() {
+        return logoUrl;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -33,6 +40,11 @@ public class Company {
     }
 
     public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
+    }
+
+    @JsonAlias("logo")
+    public void setLogo(String logoUrl) {
         this.logoUrl = logoUrl;
     }
 }

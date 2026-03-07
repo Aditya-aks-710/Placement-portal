@@ -13,10 +13,15 @@ public class StudentCompany {
     private String companyId;
     private String role;
     private String packageValue;
+    private String internshipStipend;
+    private String fullTimePackage;
     private String joinDate;
     private String endDate;
     private String type; // "full-time" or "internship"
     private String duration;
+    private Boolean converted;
+    private String conversionType; // "PPO", "FTE", etc.
+    private String conversionDate;
 
     // Getters and Setters
     public String getId() {
@@ -89,5 +94,45 @@ public class StudentCompany {
 
     public void setDuration(String duration) {
         this.duration = duration;
+    }
+
+    public String getInternshipStipend() {
+        return internshipStipend;
+    }
+
+    public void setInternshipStipend(String internshipStipend) {
+        this.internshipStipend = internshipStipend;
+    }
+
+    public String getFullTimePackage() {
+        return fullTimePackage;
+    }
+
+    public void setFullTimePackage(String fullTimePackage) {
+        this.fullTimePackage = fullTimePackage;
+    }
+
+    public Boolean getConverted() {
+        return converted;
+    }
+
+    public void setConverted(Boolean converted) {
+        this.converted = converted;
+    }
+
+    public String getConversionType() {
+        return conversionType;
+    }
+
+    public void setConversionType(String conversionType) {
+        this.conversionType = conversionType;
+    }
+
+    public String getConversionDate() {
+        return conversionDate;
+    }
+
+    public void setConversionDate(String conversionDate) {
+        this.conversionDate = conversionDate;
     }
 }

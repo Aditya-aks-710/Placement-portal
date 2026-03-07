@@ -1,22 +1,26 @@
 package com.nit.placement_portal.dto;
 
-import com.nit.placement_portal.model.InterviewRound;
 import java.util.List;
 
-
 public class InterviewExperienceDTO {
+
+    private String studentId;
     
     private String placementId;
 
     private String company;
 
-    private List<InterviewRound> rounds;
+    private List<PublicInterviewRoundDTO> rounds;
 
     private String overallTips;
 
     private String difficulty;
 
-    private Float rating;
+    private Integer rating;
+
+    public String getStudentId() {
+        return studentId;
+    }
 
     public String getPlacementId() {
         return placementId;
@@ -26,12 +30,16 @@ public class InterviewExperienceDTO {
         return company;
     }
 
-    public List<InterviewRound> getRounds() {
+    public List<PublicInterviewRoundDTO> getRounds() {
         return rounds;
     }
 
     public String getOverallTips() {
         return overallTips;
+    }
+
+    public void setStudentId(String studentId) {
+        this.studentId = studentId;
     }
 
     public void setPlacementId(String placementId) {
@@ -46,7 +54,7 @@ public class InterviewExperienceDTO {
         return difficulty;
     }
 
-    public Float getRating() {
+    public Integer getRating() {
         return rating;
     }
 
@@ -54,11 +62,11 @@ public class InterviewExperienceDTO {
         this.difficulty = difficulty;
     }
 
-    public void setRating(Float rating) {
+    public void setRating(Integer rating) {
         this.rating = rating;
     }
 
-    public void setRounds(List<InterviewRound> rounds) {
+    public void setRounds(List<PublicInterviewRoundDTO> rounds) {
         this.rounds = rounds;
     }
 

@@ -1,8 +1,12 @@
 package com.nit.placement_portal.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class CreateCompanyDTO {
     
     private String name;
+
+    @JsonAlias("logo")
     private String logoUrl;
 
     public String getName() {

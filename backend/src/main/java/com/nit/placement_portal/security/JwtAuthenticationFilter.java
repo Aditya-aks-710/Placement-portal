@@ -42,9 +42,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         String authHeader = request.getHeader("Authorization");
 
-        if(authHeader != null && authHeader.startsWith("Bearer ")) {
+        if (authHeader != null) {
+            String trimmed = authHeader.trim();
+            if (!trimmed.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-            String token = authHeader.substring(7);
+            String token = trimmed.substring(7).trim();
+            if (token.isEmpty()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             try {
 
@@ -67,7 +76,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
             } catch (Exception e) {
-                System.out.println("Invalid JWT: " + e.getMessage());
+                logger.warn("Invalid JWT token: {}", e.getMessage());
+                SecurityContextHolder.clearContext();
             }
         }
 

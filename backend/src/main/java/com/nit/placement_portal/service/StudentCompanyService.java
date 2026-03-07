@@ -5,6 +5,7 @@ import com.nit.placement_portal.repository.StudentCompanyRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class StudentCompanyService {
@@ -21,6 +22,10 @@ public class StudentCompanyService {
 
     public StudentCompany saveStudentCompany(StudentCompany studentCompany) {
         return studentCompanyRepository.save(studentCompany);
+    }
+
+    public Optional<StudentCompany> getStudentCompanyById(String id) {
+        return studentCompanyRepository.findById(id);
     }
 
     public void deleteStudentCompany(String id) {

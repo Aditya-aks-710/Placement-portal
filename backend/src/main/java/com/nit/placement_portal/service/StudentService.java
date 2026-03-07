@@ -161,9 +161,14 @@ public class StudentService {
         Optional<StudentCompany> currentRecord = studentCompanies.stream()
                 .filter(company -> isBlank(company.getEndDate()))
                 .findFirst();
+        Optional<StudentCompany> convertedRecord = studentCompanies.stream()
+                .filter(this::isConvertedCompany)
+                .findFirst();
 
         if (currentRecord.isPresent()) {
             current = toCompanyDTO(currentRecord.get());
+        } else if (convertedRecord.isPresent()) {
+            current = toCompanyDTO(convertedRecord.get());
         } else if (!studentCompanies.isEmpty()) {
             current = toCompanyDTO(studentCompanies.get(0));
         } else if (!placements.isEmpty()) {
@@ -275,10 +280,17 @@ public class StudentService {
         CompanyDTO dto = new CompanyDTO();
         Company company = resolveCompany(studentCompany.getCompanyId());
 
+        String effectivePackage = resolveEffectivePackage(studentCompany);
+        dto.setId(studentCompany.getId());
         dto.setName(company != null ? company.getName() : null);
         dto.setLogo(company != null ? company.getLogoUrl() : null);
         dto.setRole(studentCompany.getRole());
-        dto.setPackageValue(studentCompany.getPackageValue());
+        dto.setPackageValue(effectivePackage);
+        dto.setInternshipStipend(studentCompany.getInternshipStipend());
+        dto.setFullTimePackage(studentCompany.getFullTimePackage());
+        dto.setConverted(studentCompany.getConverted());
+        dto.setConversionType(studentCompany.getConversionType());
+        dto.setConversionDate(studentCompany.getConversionDate());
         dto.setJoinDate(studentCompany.getJoinDate());
         dto.setEndDate(studentCompany.getEndDate());
         dto.setType(studentCompany.getType());
@@ -369,21 +381,11 @@ public class StudentService {
         PublicInterviewRoundDTO dto = new PublicInterviewRoundDTO();
         dto.setName(defaultString(round.getRoundType(), "Interview Round"));
 
-        String description = "Details not available.";
-        if (!isBlank(round.getMonth()) || !isBlank(round.getYear())) {
-            description = "Conducted in "
-                    + defaultString(round.getMonth(), "unknown month")
-                    + " "
-                    + defaultString(round.getYear(), "unknown year")
-                    + ".";
-        }
-
-        if (round.getQuestions() != null && !round.getQuestions().isEmpty()) {
-            description = "Covers " + round.getQuestions().size() + " question(s).";
-        }
+        String description = defaultString(round.getMonth(), "Details not available.");
+        String tips = defaultString(round.getYear(), resolveTips(round.getQuestions()));
 
         dto.setDescription(description);
-        dto.setTips(resolveTips(round.getQuestions()));
+        dto.setTips(tips);
         return dto;
     }
 
@@ -458,6 +460,34 @@ public class StudentService {
             return "internship";
         }
         return "full-time";
+    }
+
+    private boolean isConvertedCompany(StudentCompany studentCompany) {
+        return Boolean.TRUE.equals(studentCompany.getConverted())
+                || !isBlank(studentCompany.getFullTimePackage());
+    }
+
+    private String resolveEffectivePackage(StudentCompany studentCompany) {
+        if ("internship".equalsIgnoreCase(studentCompany.getType()) && !isConvertedCompany(studentCompany)) {
+            return defaultString(
+                    studentCompany.getInternshipStipend(),
+                    studentCompany.getPackageValue()
+            );
+        }
+
+        if (isConvertedCompany(studentCompany)) {
+            return defaultString(
+                    studentCompany.getFullTimePackage(),
+                    studentCompany.getPackageValue(),
+                    studentCompany.getInternshipStipend()
+            );
+        }
+
+        return defaultString(
+                studentCompany.getPackageValue(),
+                studentCompany.getFullTimePackage(),
+                studentCompany.getInternshipStipend()
+        );
     }
 
     private String normalizeStatus(String status) {
