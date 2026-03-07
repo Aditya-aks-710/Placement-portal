@@ -20,6 +20,10 @@ public class InterviewExperience {
 
     private String overallTips;
 
+    private String difficulty;
+
+    private Float rating;
+
     public String getId() {
         return id;
     }
@@ -66,5 +70,21 @@ public class InterviewExperience {
 
     public void setOverallTips(String overallTips) {
         this.overallTips = overallTips;
+    }
+
+    public String getDifficulty() {
+        return difficulty;
+    }
+
+    public Float getRating() {
+        return rating;
+    }
+
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty;
+    }
+
+    public void setRating(Float rating) {
+        this.rating = rating;
     }
 }

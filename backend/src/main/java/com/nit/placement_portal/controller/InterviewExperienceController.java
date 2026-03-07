@@ -49,16 +49,21 @@ public class InterviewExperienceController {
         InterviewExperience experience = new InterviewExperience();
         experience.setStudentId(user.getStudentId());
         experience.setPlacementId(dto.getPlacementId());
-        experience.setCompanyName(dto.getCompanyName());
+        experience.setCompanyName(dto.getCompany());
         experience.setRounds(dto.getRounds());
         experience.setOverallTips(dto.getOverallTips());
+        experience.setDifficulty(dto.getDifficulty());
+        experience.setRating(dto.getRating());
 
         return interviewExperienceRepository.save(experience);
     }
 
     @GetMapping("/placement/{placementId}")
     public List<InterviewExperience> getExperiencesByPlacementId(@PathVariable String placementId) {
-        return interviewExperienceRepository.findByPlacementId(placementId);
+        return interviewExperienceRepository.findAll()
+                .stream()
+                .filter(experience -> placementId.equals(experience.getPlacementId()))
+                .toList();
     }
 
     @GetMapping("/my")
