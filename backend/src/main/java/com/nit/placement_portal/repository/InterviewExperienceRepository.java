@@ -11,4 +11,5 @@ public interface InterviewExperienceRepository extends MongoRepository<Interview
     List<InterviewExperience> findByPlacementId(String placementId);
 
     List<InterviewExperience> findByStudentId(String studentId);
+    List<InterviewExperience> findByStudentIdIn(List<String> studentIds);
 }

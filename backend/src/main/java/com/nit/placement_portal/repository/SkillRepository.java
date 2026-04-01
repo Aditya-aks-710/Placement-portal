@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface SkillRepository extends MongoRepository<Skill, String> {
     List<Skill> findByStudentId(String studentId);
+    List<Skill> findByStudentIdIn(List<String> studentIds);
 }

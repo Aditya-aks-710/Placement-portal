@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import StudentCard from "@/components/StudentCard";
 import FilterBar from "@/components/FilterBar";
 import Navbar from "@/components/Navbar";
 import { Users, CheckCircle, Clock, Briefcase } from "lucide-react";
-import { getStudents } from "@/lib/api";
+import { getStudentFilterOptions, getStudentsPage } from "@/lib/api";
 import {
   Select,
   SelectContent,
@@ -19,43 +19,72 @@ const Index = () => {
   const [companyFilter, setCompanyFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
   const [batchFilter, setBatchFilter] = useState("all");
-  const { data: students = [], isLoading, isError, error } = useQuery({
-    queryKey: ["students"],
-    queryFn: () => getStudents(),
+  const deferredSearch = useDeferredValue(search.trim());
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const queryFilters = useMemo(
+    () => ({
+      search: deferredSearch || undefined,
+      status: statusFilter !== "all" ? statusFilter : undefined,
+      company: companyFilter !== "all" ? companyFilter : undefined,
+      branch: branchFilter !== "all" ? branchFilter : undefined,
+      batch: batchFilter !== "all" ? batchFilter : undefined,
+    }),
+    [batchFilter, branchFilter, companyFilter, deferredSearch, statusFilter],
+  );
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["students", "infinite", queryFilters],
+    queryFn: ({ pageParam }) =>
+      getStudentsPage({
+        ...queryFilters,
+        page: Number(pageParam),
+        size: 12,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
+  });
+  const { data: filterOptions } = useQuery({
+    queryKey: ["students", "filters"],
+    queryFn: getStudentFilterOptions,
   });
   const errorMessage = error instanceof Error ? error.message : "Unable to load students from backend.";
+  const students = useMemo(() => data?.pages.flatMap((page) => page.students) ?? [], [data]);
+  const summary = data?.pages[0];
+  const companies = filterOptions?.companies ?? [];
+  const branches = filterOptions?.branches ?? [];
+  const batches = filterOptions?.batches ?? [];
+  const totalStudents = summary?.total ?? students.length;
 
-  const companies = useMemo(() => {
-    const set = new Set<string>();
-    students.forEach((s) => {
-      if (s.currentCompany) set.add(s.currentCompany.name);
-    });
-    return Array.from(set).sort();
-  }, [students]);
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage) {
+      return;
+    }
 
-  const branches = useMemo(() => Array.from(new Set(students.map((s) => s.branch))).sort(), [students]);
-  const batches = useMemo(() => Array.from(new Set(students.map((s) => s.batch))).sort(), [students]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: "240px" },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, students.length]);
 
   const activeFilters = [branchFilter, batchFilter, statusFilter, companyFilter].filter(
     (f) => f !== "all"
   ).length;
-
-  const filtered = useMemo(() => {
-    return students.filter((s) => {
-      const matchSearch =
-        !search ||
-        s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.currentCompany?.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.skills.some((sk) => sk.toLowerCase().includes(search.toLowerCase()));
-
-      const matchStatus = statusFilter === "all" || s.status === statusFilter;
-      const matchCompany = companyFilter === "all" || s.currentCompany?.name === companyFilter;
-      const matchBranch = branchFilter === "all" || s.branch === branchFilter;
-      const matchBatch = batchFilter === "all" || s.batch === batchFilter;
-
-      return matchSearch && matchStatus && matchCompany && matchBranch && matchBatch;
-    });
-  }, [search, statusFilter, companyFilter, branchFilter, batchFilter, students]);
 
   const clearFilters = () => {
     setSearch("");
@@ -64,9 +93,9 @@ const Index = () => {
     setStatusFilter("all");
     setCompanyFilter("all");
   };
-  const placedCount = filtered.filter((s) => s.status === "placed").length;
-  const unplacedCount = filtered.filter((s) => s.status === "unplaced").length;
-  const internCount = filtered.filter((s) => s.status === "internship").length;
+  const placedCount = summary?.placedCount ?? 0;
+  const unplacedCount = summary?.unplacedCount ?? 0;
+  const internCount = summary?.internshipCount ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -113,7 +142,7 @@ const Index = () => {
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { icon: Users, label: "Total Students", value: filtered.length, color: "bg-white/10" },
+              { icon: Users, label: "Total Students", value: totalStudents, color: "bg-white/10" },
               { icon: CheckCircle, label: "Placed", value: placedCount, color: "bg-placed/20" },
               { icon: Clock, label: "Unplaced", value: unplacedCount, color: "bg-white/10" },
               { icon: Briefcase, label: "Internships", value: internCount, color: "bg-internship/20" },
@@ -155,16 +184,24 @@ const Index = () => {
         />
 
         <div className="mt-2 mb-4 text-sm text-muted-foreground">
-          Showing {filtered.length} of {students.length} students
+          Showing {students.length} of {totalStudents} students
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((student) => (
+          {students.map((student) => (
             <StudentCard key={student.id} student={student} />
           ))}
         </div>
 
-        {filtered.length === 0 && (
+        {students.length > 0 && <div ref={loadMoreRef} className="h-4" />}
+
+        {isFetchingNextPage && (
+          <div className="py-6 text-center text-sm text-muted-foreground">
+            Loading more students...
+          </div>
+        )}
+
+        {!isLoading && totalStudents === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Users className="h-12 w-12 text-muted-foreground/30" />
             <h3 className="mt-4 font-display text-lg font-semibold text-foreground">No students found</h3>
