@@ -1,6 +1,8 @@
 package com.nit.placement_portal.controller;
 
 import com.nit.placement_portal.dto.CompanyDTO;
+import com.nit.placement_portal.exception.BadRequestException;
+import com.nit.placement_portal.exception.ResourceNotFoundException;
 import com.nit.placement_portal.model.Company;
 import com.nit.placement_portal.model.Student;
 import com.nit.placement_portal.model.StudentCompany;
@@ -58,10 +60,10 @@ public class StudentCompanyController {
         ensureStudentExists(studentId);
 
         StudentCompany existing = studentCompanyService.getStudentCompanyById(studentCompanyId)
-                .orElseThrow(() -> new RuntimeException("Student company record not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student company record not found"));
 
         if (!studentId.equals(existing.getStudentId())) {
-            throw new RuntimeException("Student company record does not belong to this student");
+            throw new BadRequestException("Student company record does not belong to this student");
         }
 
         applyCompanyPayload(existing, dto, false);
@@ -74,7 +76,7 @@ public class StudentCompanyController {
         String companyName = firstNonBlank(dto.getName());
 
         if (isCreate && companyName == null) {
-            throw new RuntimeException("Company name is required");
+            throw new BadRequestException("Company name is required");
         }
 
         if (companyName != null) {
@@ -83,7 +85,7 @@ public class StudentCompanyController {
         }
 
         if (target.getCompanyId() == null || target.getCompanyId().isBlank()) {
-            throw new RuntimeException("Company is required");
+            throw new BadRequestException("Company is required");
         }
 
         String type = firstNonBlank(dto.getType(), target.getType(), "full-time");
@@ -122,7 +124,7 @@ public class StudentCompanyController {
 
     private void syncStudentPlacementSnapshot(String studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
 
         List<StudentCompany> studentCompanies = studentCompanyService.getStudentCompanies(studentId);
         StudentCompany active = pickActiveCompany(studentCompanies);
@@ -198,7 +200,7 @@ public class StudentCompanyController {
 
     private void ensureStudentExists(String studentId) {
         if (studentRepository.findById(studentId).isEmpty()) {
-            throw new RuntimeException("Student not found");
+            throw new ResourceNotFoundException("Student not found");
         }
     }
 

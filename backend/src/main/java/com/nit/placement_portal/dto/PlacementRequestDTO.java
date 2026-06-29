@@ -4,6 +4,7 @@ public class PlacementRequestDTO {
 
     private String studentId;
     private String companyId;
+    private String companyName;
     private String role;
     private double ctc;
     private int placementYear;
@@ -17,6 +18,10 @@ public class PlacementRequestDTO {
 
     public String getCompanyId() {
         return companyId;
+    }
+
+    public String getCompanyName() {
+        return companyName;
     }
 
     public String getRole() {
@@ -45,6 +50,10 @@ public class PlacementRequestDTO {
 
     public void setCompanyId(String companyId) {
         this.companyId = companyId;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
     }
 
     public void setRole(String role) {

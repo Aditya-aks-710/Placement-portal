@@ -13,7 +13,6 @@ const statusConfig = {
 const StudentCard = ({ student }: { student: Student }) => {
   const navigate = useNavigate();
   const config = statusConfig[student.status] ?? statusConfig.unplaced;
-  const isClickable = student.status !== "unplaced";
 
   const initials = student.name
     .split(" ")
@@ -32,12 +31,8 @@ const StudentCard = ({ student }: { student: Student }) => {
 
   return (
     <div
-      onClick={() => isClickable && navigate(`/student/${student.id}`)}
-      className={`group elevated-card rounded-xl p-5 transition-all duration-300 ${
-        isClickable
-          ? "cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:border-accent/30"
-          : "opacity-80"
-      } animate-fade-in`}
+      onClick={() => navigate(`/student/${student.id}`)}
+      className="group elevated-card rounded-xl p-5 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:border-accent/30 animate-fade-in"
     >
       <div className="flex items-start gap-4">
         <div

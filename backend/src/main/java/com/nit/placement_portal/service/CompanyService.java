@@ -2,6 +2,7 @@ package com.nit.placement_portal.service;
 
 import org.springframework.stereotype.Service;
 import com.nit.placement_portal.model.Company;
+import com.nit.placement_portal.exception.ResourceNotFoundException;
 import com.nit.placement_portal.repository.CompanyRepository;
 
 import java.util.List;
@@ -40,6 +41,6 @@ public class CompanyService {
 
     public Company getCompanyById(String id) {
         return companyRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Company Not Found"));
+            .orElseThrow(() -> new ResourceNotFoundException("Company Not Found"));
     }
 }

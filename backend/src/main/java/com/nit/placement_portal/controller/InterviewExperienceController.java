@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.*;
 import com.nit.placement_portal.dto.InterviewExperienceDTO;
 import com.nit.placement_portal.dto.PublicInterviewExperienceDTO;
 import com.nit.placement_portal.dto.PublicInterviewRoundDTO;
+import com.nit.placement_portal.exception.ResourceNotFoundException;
+import com.nit.placement_portal.exception.UnauthorizedException;
 import com.nit.placement_portal.model.InterviewExperience;
 import com.nit.placement_portal.model.InterviewQuestion;
 import com.nit.placement_portal.model.InterviewRound;
@@ -42,7 +44,7 @@ public class InterviewExperienceController {
                         .getAuthentication();
         
         if(auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         String username = auth.getName();
@@ -50,10 +52,10 @@ public class InterviewExperienceController {
         User user =
                 userRepository.findByUsername(username)
                         .orElseThrow(
-                                () -> new RuntimeException("User not found"));
+                                () -> new ResourceNotFoundException("User not found"));
 
         InterviewExperience experience = new InterviewExperience();
-        experience.setStudentId(resolveStudentId(dto.getStudentId(), user.getStudentId()));
+        experience.setStudentId(user.getStudentId());
         experience.setPlacementId(dto.getPlacementId());
         experience.setCompanyName(dto.getCompany());
         experience.setRounds(toRounds(dto.getRounds()));
@@ -81,26 +83,19 @@ public class InterviewExperienceController {
                         .getAuthentication();
         
         if(auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("Unauthorized");
+            throw new UnauthorizedException("Unauthorized");
         }
 
         String username = auth.getName();
 
         User user =
                 userRepository.findByUsername(username)
-                        .orElseThrow();
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return interviewExperienceRepository.findByStudentId(user.getStudentId())
                 .stream()
                 .map(this::toPublicDTO)
                 .toList();
-    }
-
-    private String resolveStudentId(String requestedStudentId, String authenticatedStudentId) {
-        if (requestedStudentId != null && !requestedStudentId.isBlank()) {
-            return requestedStudentId;
-        }
-        return authenticatedStudentId;
     }
 
     private List<InterviewRound> toRounds(List<PublicInterviewRoundDTO> roundDTOs) {

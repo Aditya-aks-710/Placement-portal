@@ -17,6 +17,9 @@ import {
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStudents } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import AddExperienceDialog from "@/components/AddExperienceDialog";
+import AddPlacementDialog from "@/components/AddPlacementDialog";
 
 const statusConfig = {
   placed: { label: "Placed", className: "bg-placed text-placed-foreground" },
@@ -34,6 +37,7 @@ const difficultyColor = {
 const StudentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const { data: students = [], isLoading, isError, error } = useQuery({
     queryKey: ["students"],
     queryFn: () => getStudents(),
@@ -134,13 +138,34 @@ const StudentDetail = () => {
               </div>
             </div>
 
-            <Button
-              onClick={() => navigate("/login")}
-              className="shrink-0 bg-accent text-accent-foreground hover:bg-accent/90"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Edit Profile
-            </Button>
+            {isAuthenticated ? (
+              <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                <AddPlacementDialog
+                  trigger={
+                    <Button variant="outline" className="shrink-0">
+                      <Briefcase className="mr-2 h-4 w-4" />
+                      Submit Placement
+                    </Button>
+                  }
+                />
+                <AddExperienceDialog
+                  trigger={
+                    <Button className="shrink-0 bg-accent text-accent-foreground hover:bg-accent/90">
+                      <Edit className="mr-2 h-4 w-4" />
+                      Share Experience
+                    </Button>
+                  }
+                />
+              </div>
+            ) : (
+              <Button
+                onClick={() => navigate("/login")}
+                className="shrink-0 bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Profile
+              </Button>
+            )}
           </div>
         </div>
       </section>
@@ -256,6 +281,18 @@ const StudentDetail = () => {
 
         {activeTab === "interviews" && (
           <div className="space-y-6 animate-fade-in">
+            {isAuthenticated && (
+              <div className="flex justify-end">
+                <AddExperienceDialog
+                  trigger={
+                    <Button variant="outline" size="sm">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Share your experience
+                    </Button>
+                  }
+                />
+              </div>
+            )}
             {student.interviewExperiences.length === 0 ? (
               <div className="elevated-card rounded-xl p-12 text-center">
                 <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/30" />

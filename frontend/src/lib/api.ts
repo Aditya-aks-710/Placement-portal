@@ -1,4 +1,5 @@
 import type { Student } from "@/data/mockStudents";
+import { getToken } from "@/lib/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -104,13 +105,51 @@ function appendIfPresent(params: URLSearchParams, key: string, value?: string) {
   }
 }
 
-async function readJsonOrThrow<T>(url: string): Promise<T> {
-  const res = await fetch(url, {
-    credentials: "include",
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const text = await res.text();
+    if (!text) return fallback;
+    try {
+      const parsed = JSON.parse(text);
+      return parsed?.message || parsed?.error || text;
+    } catch {
+      return text;
+    }
+  } catch {
+    return fallback;
+  }
+}
+
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  const token = getToken();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: authHeaders(init.headers as Record<string, string> | undefined ?? {}),
   });
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(text || `Failed to fetch students: ${res.status}`);
+    throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
+  }
+  const contentType = res.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    return res.json() as Promise<T>;
+  }
+  return res.text() as unknown as Promise<T>;
+}
+
+async function readJsonOrThrow<T>(url: string): Promise<T> {
+  const res = await fetch(url, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(await extractErrorMessage(res, `Failed to fetch students: ${res.status}`));
   }
   return res.json();
 }
@@ -167,8 +206,156 @@ export async function getStudentFilterOptions(): Promise<StudentFilterOptions> {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+export type LoginResponse = {
+  token: string;
+  username: string;
+  role: string;
+};
+
+export async function login(username: string, password: string): Promise<LoginResponse> {
+  return apiFetch<LoginResponse>("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export type InitiateRegistrationResponse = {
+  message: string;
+  token?: string;
+};
+
+export async function initiateRegistration(regno: string): Promise<InitiateRegistrationResponse> {
+  return apiFetch<InitiateRegistrationResponse>("/api/auth/initiate-registration", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ regno }),
+  });
+}
+
+export async function completeRegistration(token: string, password: string): Promise<string> {
+  return apiFetch<string>("/api/auth/complete-registration", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, password }),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Admin: placement requests
+// ---------------------------------------------------------------------------
+
+export type PlacementRequest = {
+  id: string;
+  studentId: string;
+  companyId: string;
+  company: string;
+  companyLogo?: string;
+  role: string;
+  ctc: number;
+  placementYear: number;
+  campusMode?: string;
+  placementNature?: string;
+  status: string;
+};
+
+export async function getPlacementRequests(status = "PENDING"): Promise<PlacementRequest[]> {
+  const params = new URLSearchParams();
+  if (status) params.append("status", status);
+  const qs = params.toString() ? `?${params.toString()}` : "";
+  return apiFetch<PlacementRequest[]>(`/api/admin/placement-requests${qs}`);
+}
+
+export async function approvePlacementRequest(id: string): Promise<PlacementRequest> {
+  return apiFetch<PlacementRequest>(`/api/admin/placement-requests/${id}/approve`, {
+    method: "PUT",
+  });
+}
+
+export async function rejectPlacementRequest(id: string): Promise<PlacementRequest> {
+  return apiFetch<PlacementRequest>(`/api/admin/placement-requests/${id}/reject`, {
+    method: "PUT",
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Companies
+// ---------------------------------------------------------------------------
+
+export type CompanyOption = {
+  id: string;
+  name: string;
+  logoUrl?: string;
+};
+
+export async function getCompanies(): Promise<CompanyOption[]> {
+  return apiFetch<CompanyOption[]>("/api/companies");
+}
+
+// ---------------------------------------------------------------------------
+// Student: submit a placement request
+// ---------------------------------------------------------------------------
+
+export type PlacementRequestInput = {
+  companyId?: string;
+  companyName?: string;
+  role: string;
+  ctc: number;
+  placementYear: number;
+  campusMode?: string;
+  placementNature?: string;
+};
+
+export async function submitPlacementRequest(input: PlacementRequestInput): Promise<PlacementRequest> {
+  return apiFetch<PlacementRequest>("/api/placement-requests", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Profile: interview experiences
+// ---------------------------------------------------------------------------
+
+export type InterviewRoundInput = {
+  name: string;
+  description: string;
+  tips: string;
+};
+
+export type InterviewExperienceInput = {
+  company: string;
+  rounds: InterviewRoundInput[];
+  overallTips: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  rating: number;
+  placementId?: string;
+};
+
+export async function submitInterviewExperience(input: InterviewExperienceInput): Promise<unknown> {
+  return apiFetch("/api/experiences", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 export default {
   getStudents,
   getStudentsPage,
   getStudentFilterOptions,
+  login,
+  initiateRegistration,
+  completeRegistration,
+  getPlacementRequests,
+  approvePlacementRequest,
+  rejectPlacementRequest,
+  getCompanies,
+  submitInterviewExperience,
+  submitPlacementRequest,
 };

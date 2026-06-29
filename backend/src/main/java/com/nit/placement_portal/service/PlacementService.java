@@ -3,13 +3,13 @@ package com.nit.placement_portal.service;
 import com.nit.placement_portal.model.PlacementRequest;
 import com.nit.placement_portal.model.Student;
 import com.nit.placement_portal.model.StudentPlacement;
+import com.nit.placement_portal.exception.BadRequestException;
+import com.nit.placement_portal.exception.ResourceNotFoundException;
 import com.nit.placement_portal.repository.PlacementRequestRepository;
 import com.nit.placement_portal.repository.StudentPlacementRepository;
 import com.nit.placement_portal.repository.StudentRepository;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -44,20 +44,17 @@ public class PlacementService {
     public PlacementRequest approveRequest(String requestId) {
 
         PlacementRequest request = placementRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Request Not Found"));
 
         if(!"PENDING".equals(request.getStatus())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Only pending requests can be approved"
-                );
+            throw new BadRequestException("Only pending requests can be approved");
         }
 
         request.setStatus("APPROVED");
         placementRequestRepository.save(request);
 
         Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Student Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student Not Found"));
 
         student.setStatus("PLACED");
         student.setCompany(request.getCompany());
@@ -83,20 +80,17 @@ public class PlacementService {
 
     public PlacementRequest rejectRequest(String requestId) {
         PlacementRequest request = placementRequestRepository.findById(requestId)
-                .orElseThrow(() -> new RuntimeException("Request Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Request Not Found"));
         
         if(!"PENDING".equals(request.getStatus())) {
-            throw new ResponseStatusException(
-                HttpStatus.BAD_REQUEST,
-                "Only Pending Requests can be Rejected"
-            );
+            throw new BadRequestException("Only Pending Requests can be Rejected");
         }
 
         request.setStatus("REJECTED");
         placementRequestRepository.save(request);
 
         Student student = studentRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Student Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student Not Found"));
 
         student.setStatus("UNPLACED");
         studentRepository.save(student);

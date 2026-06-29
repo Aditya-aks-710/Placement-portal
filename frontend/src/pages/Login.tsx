@@ -1,25 +1,41 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Lock, Mail, ArrowRight } from "lucide-react";
+import { Lock, User, ArrowRight, Loader2 } from "lucide-react";
+import { login as loginApi } from "@/lib/api";
+import { setSession, isAdmin } from "@/lib/auth";
+import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login — in production, call your Spring Boot API
-    if (email && password) {
-      // Simulate success
-      navigate("/");
-    } else {
-      setError("Please enter both email and password.");
+    setError("");
+
+    if (!username.trim() || !password) {
+      setError("Please enter both username and password.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await loginApi(username.trim(), password);
+      setSession({ token: res.token, username: res.username, role: res.role });
+      toast.success(`Welcome back, ${res.username}`);
+      navigate(isAdmin() ? "/admin" : "/");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login failed. Please try again.";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,21 +52,22 @@ const Login = () => {
               </div>
               <h1 className="font-display text-2xl font-bold text-foreground">Welcome Back</h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Sign in to edit your profile
+                Sign in with your registration number
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                <Label htmlFor="username" className="text-sm font-medium">Username / Reg. No.</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="email"
-                    type="email"
-                    placeholder="your.email@college.edu"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="username"
+                    type="text"
+                    autoComplete="username"
+                    placeholder="e.g. 2024CS001 or admin"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                   />
                 </div>
@@ -63,6 +80,7 @@ const Login = () => {
                   <Input
                     id="password"
                     type="password"
+                    autoComplete="current-password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -75,13 +93,32 @@ const Login = () => {
                 <p className="text-sm text-destructive">{error}</p>
               )}
 
-              <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                Sign In
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </form>
 
-            <p className="mt-6 text-center text-xs text-muted-foreground">
+            <p className="mt-6 text-center text-sm text-muted-foreground">
+              New here?{" "}
+              <Link to="/register" className="font-medium text-accent hover:underline">
+                Activate your account
+              </Link>
+            </p>
+            <p className="mt-2 text-center text-xs text-muted-foreground">
               Admin? Use your admin credentials to manage all profiles.
             </p>
           </div>

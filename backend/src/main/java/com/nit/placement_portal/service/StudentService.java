@@ -8,6 +8,7 @@ import com.nit.placement_portal.dto.PublicInterviewRoundDTO;
 import com.nit.placement_portal.dto.PublicStudentDTO;
 import com.nit.placement_portal.dto.PublicStudentFilterOptionsDTO;
 import com.nit.placement_portal.dto.PublicStudentPageDTO;
+import com.nit.placement_portal.exception.ResourceNotFoundException;
 import com.nit.placement_portal.model.Company;
 import com.nit.placement_portal.model.Education;
 import com.nit.placement_portal.model.InterviewExperience;
@@ -77,8 +78,10 @@ public class StudentService {
     }
 
     public List<PublicStudentDTO> getAllStudents() {
-        return studentRepository.findAll().stream()
-                .map(this::toPublicStudent)
+        List<Student> students = studentRepository.findAll();
+        RelatedStudentData relatedStudentData = loadRelatedStudentData(students);
+        return students.stream()
+                .map(student -> toPublicStudent(student, relatedStudentData))
                 .toList();
     }
 
@@ -162,7 +165,7 @@ public class StudentService {
 
     public Student markStudentPending(String studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student Not Found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student Not Found"));
 
         student.setStatus("PENDING");
         return studentRepository.save(student);
@@ -171,9 +174,12 @@ public class StudentService {
     public List<PublicStudentDTO> getStudentsByStatus(String status) {
         String normalizedFilter = normalizeStatus(status);
 
-        return studentRepository.findAll().stream()
+        List<Student> matched = studentRepository.findAll().stream()
                 .filter(student -> normalizeStatus(student.getStatus()).equals(normalizedFilter))
-                .map(this::toPublicStudent)
+                .toList();
+        RelatedStudentData relatedStudentData = loadRelatedStudentData(matched);
+        return matched.stream()
+                .map(student -> toPublicStudent(student, relatedStudentData))
                 .toList();
     }
 
