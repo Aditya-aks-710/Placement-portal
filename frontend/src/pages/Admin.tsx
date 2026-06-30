@@ -11,6 +11,8 @@ import {
   Clock,
   IndianRupee,
   CalendarDays,
+  MapPin,
+  Briefcase,
 } from "lucide-react";
 import {
   getPlacementRequests,
@@ -138,41 +140,70 @@ const Admin = () => {
           {requests.map((request: PlacementRequest) => (
             <div
               key={request.id}
-              className="elevated-card flex flex-col gap-4 rounded-xl p-5 sm:flex-row sm:items-center sm:justify-between"
+              className="elevated-card group flex flex-col gap-5 rounded-2xl border border-border/60 p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+              <div className="flex min-w-0 items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-accent/15 to-primary/10 ring-1 ring-border/50">
                   {request.companyLogo ? (
                     <img
                       src={request.companyLogo}
                       alt={request.company}
-                      className="h-8 w-8 rounded object-contain"
+                      className="h-9 w-9 rounded-md object-contain"
                     />
                   ) : (
-                    <Building2 className="h-6 w-6 text-muted-foreground" />
+                    <Building2 className="h-7 w-7 text-accent" />
                   )}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-foreground">{request.company}</h3>
-                    <Badge className={statusBadge[request.status] ?? "bg-muted"}>{request.status}</Badge>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-display text-base font-semibold text-foreground">{request.company}</h3>
+                    {request.engagementType && (
+                      <Badge variant="secondary" className="rounded-full px-2.5 py-0.5 text-[10px] font-semibold">
+                        {request.engagementType}
+                      </Badge>
+                    )}
+                    {request.requestType === "CONVERSION" && (
+                      <Badge className="rounded-full bg-placed/15 px-2.5 py-0.5 text-[10px] font-semibold text-placed hover:bg-placed/15">
+                        Conversion
+                      </Badge>
+                    )}
+                    {request.status !== "PENDING" && (
+                      <Badge className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${statusBadge[request.status] ?? "bg-muted"}`}>
+                        {request.status}
+                      </Badge>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{request.role}</p>
-                  <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <IndianRupee className="h-3.5 w-3.5" /> {request.ctc} LPA
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">{request.role}</p>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    {request.ctc > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-semibold text-accent">
+                        <IndianRupee className="h-3.5 w-3.5" /> {request.ctc} LPA
+                      </span>
+                    )}
+                    {request.stipend ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-internship/15 px-2.5 py-1 text-xs font-semibold text-foreground/80">
+                        <IndianRupee className="h-3.5 w-3.5" /> {request.stipend}K/mo
+                      </span>
+                    ) : null}
+                    <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground/70">
+                      <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" /> {request.placementYear}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <CalendarDays className="h-3.5 w-3.5" /> {request.placementYear}
-                    </span>
-                    {request.campusMode && <span>{request.campusMode}</span>}
-                    {request.placementNature && <span>{request.placementNature}</span>}
+                    {request.campusMode && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground/70">
+                        <MapPin className="h-3.5 w-3.5 text-muted-foreground" /> {request.campusMode}
+                      </span>
+                    )}
+                    {request.placementNature && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground/70">
+                        <Briefcase className="h-3.5 w-3.5 text-muted-foreground" /> {request.placementNature}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
               {request.status === "PENDING" && (
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2 sm:flex-col sm:items-stretch lg:flex-row">
                   <Button
                     size="sm"
                     onClick={() => approveMutation.mutate(request.id)}

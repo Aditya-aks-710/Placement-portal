@@ -3,6 +3,7 @@ package com.nit.placement_portal.service;
 import com.nit.placement_portal.data.MockStudentsData;
 import com.nit.placement_portal.dto.CompanyDTO;
 import com.nit.placement_portal.dto.EducationDTO;
+import com.nit.placement_portal.dto.PositionDTO;
 import com.nit.placement_portal.dto.PublicInterviewExperienceDTO;
 import com.nit.placement_portal.dto.PublicInterviewRoundDTO;
 import com.nit.placement_portal.dto.PublicStudentDTO;
@@ -466,6 +467,7 @@ public class StudentService {
         dto.setEndDate(studentCompany.getEndDate());
         dto.setType(studentCompany.getType());
         dto.setDuration(studentCompany.getDuration());
+        dto.setPositions(PositionDTO.deriveFrom(studentCompany));
         return dto;
     }
 

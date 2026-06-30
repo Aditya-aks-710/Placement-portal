@@ -1,5 +1,7 @@
 package com.nit.placement_portal.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -18,6 +20,7 @@ public class CompanyDTO {
     private String conversionType;
     private String conversionDate;
     private String logo;
+    private List<PositionDTO> positions;
 
     // Getters and Setters
     public String getId() {
@@ -152,5 +155,13 @@ public class CompanyDTO {
     @JsonAlias("logoUrl")
     public void setLogo(String logo) {
         this.logo = logo;
+    }
+
+    public List<PositionDTO> getPositions() {
+        return positions;
+    }
+
+    public void setPositions(List<PositionDTO> positions) {
+        this.positions = positions;
     }
 }

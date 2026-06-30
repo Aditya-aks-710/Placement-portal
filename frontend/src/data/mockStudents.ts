@@ -1,14 +1,31 @@
 export type PlacementType = "placed" | "unplaced" | "internship" | "pending";
 
+export interface Position {
+  id?: string;
+  title: string;
+  type: "internship" | "full-time";
+  startDate?: string;
+  endDate?: string;
+  stipend?: string;
+  ctc?: string;
+}
+
 export interface Company {
+  id?: string;
   name: string;
   role: string;
   package: string;
+  stipend?: string;
+  fullTimePackage?: string;
+  converted?: boolean;
+  conversionType?: string;
+  conversionDate?: string;
   joinDate: string;
   endDate?: string;
   type: "full-time" | "internship";
   duration?: string;
   logo?: string;
+  positions?: Position[];
 }
 
 export interface InterviewExperience {
@@ -32,6 +49,7 @@ export interface Education {
 
 export interface Student {
   id: string;
+  regno?: string;
   name: string;
   email: string;
   phone: string;

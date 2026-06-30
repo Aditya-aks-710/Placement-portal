@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,12 @@ import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const expired = searchParams.get("expired") === "1";
+  const redirectTo = searchParams.get("redirect");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(expired ? "Your session expired. Please sign in again." : "");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +33,13 @@ const Login = () => {
       const res = await loginApi(username.trim(), password);
       setSession({ token: res.token, username: res.username, role: res.role });
       toast.success(`Welcome back, ${res.username}`);
-      navigate(isAdmin() ? "/admin" : "/");
+      // Honor an explicit redirect target, but never drop the user straight onto
+      // a profile page — always land on the dashboard (or admin) instead.
+      if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("/student/")) {
+        navigate(redirectTo);
+      } else {
+        navigate(isAdmin() ? "/admin" : "/");
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed. Please try again.";
       setError(message);

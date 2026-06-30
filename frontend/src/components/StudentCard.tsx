@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Briefcase, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Student } from "@/data/mockStudents";
+import { useAuth } from "@/lib/auth";
 
 const statusConfig = {
   placed: { label: "Placed", className: "bg-placed text-placed-foreground" },
@@ -12,7 +13,15 @@ const statusConfig = {
 
 const StudentCard = ({ student }: { student: Student }) => {
   const navigate = useNavigate();
+  const { isAdmin, username } = useAuth();
   const config = statusConfig[student.status] ?? statusConfig.unplaced;
+
+  const isOwnCard =
+    !!username &&
+    !!student.regno &&
+    username.trim().toLowerCase() === student.regno.trim().toLowerCase();
+  // Unplaced students' cards are not viewable, except by an admin or the owner.
+  const canOpen = student.status !== "unplaced" || isAdmin || isOwnCard;
 
   const initials = student.name
     .split(" ")
@@ -31,8 +40,13 @@ const StudentCard = ({ student }: { student: Student }) => {
 
   return (
     <div
-      onClick={() => navigate(`/student/${student.id}`)}
-      className="group elevated-card rounded-xl p-5 transition-all duration-300 cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:border-accent/30 animate-fade-in"
+      onClick={canOpen ? () => navigate(`/student/${student.id}`) : undefined}
+      aria-disabled={!canOpen}
+      className={`group elevated-card rounded-xl p-5 transition-all duration-300 animate-fade-in ${
+        canOpen
+          ? "cursor-pointer hover:-translate-y-1 hover:shadow-lg hover:border-accent/30"
+          : "cursor-not-allowed opacity-70"
+      }`}
     >
       <div className="flex items-start gap-4">
         <div

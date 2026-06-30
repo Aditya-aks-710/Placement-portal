@@ -46,7 +46,23 @@ public class PlacementRequestController {
         User user = userRepository.findByUsername(auth.getName())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        String studentId = user.getStudentId();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        // Profile-targeted: the placement belongs to the student whose profile was
+        // opened (dto.studentId). Admins may submit for anyone; a student may only
+        // submit for their own profile. Fall back to the caller's own id when the
+        // client did not specify a target.
+        String requestedStudentId = dto.getStudentId();
+        String studentId;
+        if (requestedStudentId != null && !requestedStudentId.isBlank()) {
+            if (!isAdmin && !requestedStudentId.equals(user.getStudentId())) {
+                throw new UnauthorizedException("You can only submit a placement for your own profile");
+            }
+            studentId = requestedStudentId;
+        } else {
+            studentId = user.getStudentId();
+        }
 
         Company company = resolveCompany(dto);
 
@@ -57,9 +73,16 @@ public class PlacementRequestController {
         request.setCompanyLogo(company.getLogoUrl());
         request.setRole(dto.getRole());
         request.setCtc(dto.getCtc());
+        request.setStipend(dto.getStipend());
         request.setPlacementYear(dto.getPlacementYear());
+        request.setStartMonth(dto.getStartMonth());
         request.setCampusMode(dto.getCampusMode());
         request.setPlacementNature(dto.getPlacementNature());
+        request.setEngagementType(dto.getEngagementType());
+        request.setRequestType(dto.getRequestType() == null || dto.getRequestType().isBlank()
+                ? "PLACEMENT"
+                : dto.getRequestType());
+        request.setTargetCompanyRecordId(dto.getTargetCompanyRecordId());
         request.setStatus("PENDING");
 
         placementRequestRepository.save(request);

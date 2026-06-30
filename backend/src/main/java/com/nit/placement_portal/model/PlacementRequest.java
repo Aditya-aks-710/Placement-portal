@@ -15,15 +15,60 @@ public class PlacementRequest {
     private String companyLogo;
     private String role;
     private double ctc;
+    private double stipend;
     private int placementYear;
+    private String startMonth;
 
     private String campusMode;
     private String placementNature;
+    private String engagementType;
+    private String requestType;
+    private String targetCompanyRecordId;
 
     private String status;
 
     public String getId() {
         return id;
+    }
+
+    public double getStipend() {
+        return stipend;
+    }
+
+    public void setStipend(double stipend) {
+        this.stipend = stipend;
+    }
+
+    public String getStartMonth() {
+        return startMonth;
+    }
+
+    public void setStartMonth(String startMonth) {
+        this.startMonth = startMonth;
+    }
+
+    public String getEngagementType() {
+        return engagementType;
+    }
+
+    public void setEngagementType(String engagementType) {
+        this.engagementType = engagementType;
+    }
+
+    public String getRequestType() {
+        return requestType;
+    }
+
+    public void setRequestType(String requestType) {
+        this.requestType = requestType;
+    }
+
+    public String getTargetCompanyRecordId() {
+        return targetCompanyRecordId;
+    }
+
+    public void setTargetCompanyRecordId(String targetCompanyRecordId) {
+        this.targetCompanyRecordId = targetCompanyRecordId;
     }
 
     public String getStudentId() {

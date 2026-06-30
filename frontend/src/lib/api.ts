@@ -1,5 +1,18 @@
-import type { Student } from "@/data/mockStudents";
+import type { Student, Company, Position } from "@/data/mockStudents";
 import { getToken } from "@/lib/auth";
+import { clearSession } from "@/lib/auth";
+
+/**
+ * Called when the backend rejects our token (expired/invalid). Clears the stale
+ * session so the UI reflects logged-out state and bounces the user to /login.
+ */
+function handleUnauthorized() {
+  clearSession();
+  if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+    const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+    window.location.assign(`/login?expired=1&redirect=${redirect}`);
+  }
+}
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -54,14 +67,70 @@ function normalizeStatus(s: string | null | undefined): "placed" | "unplaced" | 
   return "unplaced";
 }
 
+function mapBackendPosition(p: BackendStudent): Position {
+  return {
+    id: p.id ?? undefined,
+    title: p.title ?? p.role ?? "",
+    type: (p.type as Position["type"]) ?? "full-time",
+    startDate: p.startDate ?? undefined,
+    endDate: p.endDate ?? undefined,
+    stipend: p.stipend ?? undefined,
+    ctc: p.ctc ?? undefined,
+  };
+}
+
+function mapBackendCompany(c: BackendStudent): Company {
+  return {
+    id: c.id ?? undefined,
+    name: c.name ?? "",
+    role: c.role ?? "",
+    package: c.package ?? c.packageValue ?? "",
+    stipend: c.stipend ?? c.internshipStipend ?? undefined,
+    fullTimePackage: c.fullTimePackage ?? undefined,
+    converted: c.converted ?? undefined,
+    conversionType: c.conversionType ?? undefined,
+    conversionDate: c.conversionDate ?? undefined,
+    joinDate: c.joinDate ?? "",
+    endDate: c.endDate ?? undefined,
+    type: (c.type as Company["type"]) ?? "full-time",
+    duration: c.duration ?? undefined,
+    logo: c.logo ?? c.companyLogo ?? undefined,
+    positions: Array.isArray(c.positions) ? c.positions.map(mapBackendPosition) : undefined,
+  };
+}
+
 function mapBackendToStudent(b: BackendStudent): Student {
   const name: string = b.name ?? b.fullName ?? "Unknown";
   const status = normalizeStatus(b.status);
-  const companyName: string | undefined = b.company ?? b.currentCompanyName ?? undefined;
   const companyType = status === "internship" ? "internship" : "full-time";
+
+  // Prefer the rich currentCompany object (carries stipend, CTC, conversion info).
+  let currentCompany: Company | undefined;
+  if (b.currentCompany && typeof b.currentCompany === "object") {
+    currentCompany = mapBackendCompany(b.currentCompany);
+  } else {
+    const companyName: string | undefined = b.company ?? b.currentCompanyName ?? undefined;
+    currentCompany = companyName
+      ? {
+          name: companyName,
+          role: b.role ?? "",
+          package: b.packageValue ?? b.package ?? "",
+          joinDate: b.joinDate ?? "",
+          type: (b.type as Company["type"]) ?? companyType,
+          duration: b.duration ?? undefined,
+          endDate: b.endDate ?? undefined,
+          logo: b.companyLogo ?? undefined,
+        }
+      : undefined;
+  }
+
+  const pastCompanies: Company[] = Array.isArray(b.pastCompanies)
+    ? b.pastCompanies.map(mapBackendCompany)
+    : [];
 
   return {
     id: b.id ?? b._id ?? b.regno ?? b.regNo ?? "",
+    regno: b.regno ?? b.regNo ?? undefined,
     name,
     email: b.email ?? "",
     phone: b.phone ?? "",
@@ -77,19 +146,8 @@ function mapBackendToStudent(b: BackendStudent): Student {
       return "Unknown";
     })(),
     status,
-    currentCompany: companyName
-      ? {
-          name: companyName,
-          role: b.role ?? "",
-          package: b.packageValue ?? b.package ?? "",
-          joinDate: b.joinDate ?? "",
-          type: b.type ?? companyType,
-          duration: b.duration ?? undefined,
-          endDate: b.endDate ?? undefined,
-          logo: b.companyLogo ?? undefined,
-        }
-      : undefined,
-    pastCompanies: b.pastCompanies ?? [],
+    currentCompany,
+    pastCompanies,
     interviewExperiences: b.interviewExperiences ?? [],
     education: b.education ?? [],
     skills: b.skills ?? [],
@@ -134,6 +192,10 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     ...init,
     headers: authHeaders(init.headers as Record<string, string> | undefined ?? {}),
   });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
   if (!res.ok) {
     throw new Error(await extractErrorMessage(res, `Request failed: ${res.status}`));
   }
@@ -148,6 +210,10 @@ async function readJsonOrThrow<T>(url: string): Promise<T> {
   const res = await fetch(url, {
     headers: authHeaders(),
   });
+  if (res.status === 401) {
+    handleUnauthorized();
+    throw new Error("Your session has expired. Please sign in again.");
+  }
   if (!res.ok) {
     throw new Error(await extractErrorMessage(res, `Failed to fetch students: ${res.status}`));
   }
@@ -257,9 +323,13 @@ export type PlacementRequest = {
   companyLogo?: string;
   role: string;
   ctc: number;
+  stipend?: number;
   placementYear: number;
+  startMonth?: string;
   campusMode?: string;
   placementNature?: string;
+  engagementType?: string;
+  requestType?: string;
   status: string;
 };
 
@@ -297,17 +367,76 @@ export async function getCompanies(): Promise<CompanyOption[]> {
 }
 
 // ---------------------------------------------------------------------------
+// Student company: edit the role timeline (positions)
+// ---------------------------------------------------------------------------
+
+export type PositionInput = {
+  id?: string;
+  title: string;
+  type: "internship" | "full-time";
+  startDate?: string;
+  endDate?: string;
+  stipend?: string;
+  ctc?: string;
+};
+
+/** Replace the positions of an existing student-company record (owner or admin). */
+export async function updateStudentCompanyPositions(
+  studentId: string,
+  studentCompanyId: string,
+  positions: PositionInput[],
+): Promise<Company> {
+  const raw = await apiFetch<BackendStudent>(
+    `/api/students/${studentId}/companies/${studentCompanyId}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ positions }),
+    },
+  );
+  return mapBackendCompany(raw);
+}
+
+/** Delete a student-company record entirely (owner or admin). */
+export async function deleteStudentCompany(
+  studentId: string,
+  studentCompanyId: string,
+): Promise<void> {
+  await apiFetch<void>(`/api/students/${studentId}/companies/${studentCompanyId}`, {
+    method: "DELETE",
+  });
+}
+
+/** Replace a student's full skill list (owner or admin). Returns saved skills. */
+export async function updateStudentSkills(
+  studentId: string,
+  skills: string[],
+): Promise<string[]> {
+  return apiFetch<string[]>(`/api/students/${studentId}/skills`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skills }),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Student: submit a placement request
 // ---------------------------------------------------------------------------
 
 export type PlacementRequestInput = {
+  studentId?: string;
   companyId?: string;
   companyName?: string;
   role: string;
-  ctc: number;
+  ctc?: number;
+  stipend?: number;
   placementYear: number;
+  startMonth?: string;
   campusMode?: string;
   placementNature?: string;
+  engagementType?: string;
+  requestType?: "PLACEMENT" | "CONVERSION";
+  targetCompanyRecordId?: string;
 };
 
 export async function submitPlacementRequest(input: PlacementRequestInput): Promise<PlacementRequest> {
@@ -356,6 +485,9 @@ export default {
   approvePlacementRequest,
   rejectPlacementRequest,
   getCompanies,
+  updateStudentCompanyPositions,
+  deleteStudentCompany,
+  updateStudentSkills,
   submitInterviewExperience,
   submitPlacementRequest,
 };

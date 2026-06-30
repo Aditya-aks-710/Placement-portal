@@ -1,17 +1,26 @@
 package com.nit.placement_portal.controller;
 
 import com.nit.placement_portal.dto.CompanyDTO;
+import com.nit.placement_portal.dto.PositionDTO;
 import com.nit.placement_portal.exception.BadRequestException;
 import com.nit.placement_portal.exception.ResourceNotFoundException;
+import com.nit.placement_portal.exception.UnauthorizedException;
 import com.nit.placement_portal.model.Company;
+import com.nit.placement_portal.model.Position;
 import com.nit.placement_portal.model.Student;
 import com.nit.placement_portal.model.StudentCompany;
+import com.nit.placement_portal.model.User;
 import com.nit.placement_portal.repository.StudentRepository;
+import com.nit.placement_portal.repository.UserRepository;
 import com.nit.placement_portal.service.CompanyService;
 import com.nit.placement_portal.service.StudentCompanyService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/students")
@@ -20,15 +29,18 @@ public class StudentCompanyController {
     private final StudentRepository studentRepository;
     private final CompanyService companyService;
     private final StudentCompanyService studentCompanyService;
+    private final UserRepository userRepository;
 
     public StudentCompanyController(
             StudentRepository studentRepository,
             CompanyService companyService,
-            StudentCompanyService studentCompanyService
+            StudentCompanyService studentCompanyService,
+            UserRepository userRepository
     ) {
         this.studentRepository = studentRepository;
         this.companyService = companyService;
         this.studentCompanyService = studentCompanyService;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/{studentId}/companies")
@@ -41,6 +53,7 @@ public class StudentCompanyController {
     @PostMapping("/{studentId}/companies")
     public CompanyDTO addStudentCompany(@PathVariable String studentId, @RequestBody CompanyDTO dto) {
         ensureStudentExists(studentId);
+        ensureOwnerOrAdmin(studentId);
 
         StudentCompany studentCompany = new StudentCompany();
         studentCompany.setStudentId(studentId);
@@ -58,6 +71,7 @@ public class StudentCompanyController {
             @RequestBody CompanyDTO dto
     ) {
         ensureStudentExists(studentId);
+        ensureOwnerOrAdmin(studentId);
 
         StudentCompany existing = studentCompanyService.getStudentCompanyById(studentCompanyId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student company record not found"));
@@ -70,6 +84,45 @@ public class StudentCompanyController {
         StudentCompany saved = studentCompanyService.saveStudentCompany(existing);
         syncStudentPlacementSnapshot(studentId);
         return toCompanyDTO(saved);
+    }
+
+    @DeleteMapping("/{studentId}/companies/{studentCompanyId}")
+    public void deleteStudentCompany(
+            @PathVariable String studentId,
+            @PathVariable String studentCompanyId
+    ) {
+        ensureStudentExists(studentId);
+        ensureOwnerOrAdmin(studentId);
+
+        StudentCompany existing = studentCompanyService.getStudentCompanyById(studentCompanyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student company record not found"));
+
+        if (!studentId.equals(existing.getStudentId())) {
+            throw new BadRequestException("Student company record does not belong to this student");
+        }
+
+        studentCompanyService.deleteStudentCompany(studentCompanyId);
+        syncStudentPlacementSnapshot(studentId);
+    }
+
+    /** A logged-in student may only edit their own profile; admins may edit anyone. */
+    private void ensureOwnerOrAdmin(String studentId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new UnauthorizedException("Unauthorized");
+        }
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (isAdmin) {
+            return;
+        }
+
+        User user = userRepository.findByUsername(auth.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (!studentId.equals(user.getStudentId())) {
+            throw new UnauthorizedException("You can only edit your own profile");
+        }
     }
 
     private void applyCompanyPayload(StudentCompany target, CompanyDTO dto, boolean isCreate) {
@@ -120,6 +173,72 @@ public class StudentCompanyController {
         target.setConverted(convertedFlag);
         target.setConversionType(firstNonBlank(dto.getConversionType(), target.getConversionType()));
         target.setConversionDate(firstNonBlank(dto.getConversionDate(), target.getConversionDate()));
+
+        // When the client sends an explicit role timeline, persist it and recompute
+        // the flat fields from it so status/list rendering stays consistent.
+        if (dto.getPositions() != null) {
+            applyPositions(target, dto.getPositions());
+        }
+    }
+
+    /** Persist the position timeline and derive the flat company fields from it. */
+    private void applyPositions(StudentCompany target, List<PositionDTO> positionDtos) {
+        List<Position> positions = new ArrayList<>();
+        for (PositionDTO pd : positionDtos) {
+            if (isBlank(pd.getTitle())) {
+                continue;
+            }
+            Position p = pd.toModel();
+            if (isBlank(p.getId())) {
+                p.setId(UUID.randomUUID().toString());
+            }
+            positions.add(p);
+        }
+
+        if (positions.isEmpty()) {
+            throw new BadRequestException("At least one position with a title is required");
+        }
+
+        target.setPositions(positions);
+
+        Position firstPosition = positions.get(0);
+        Position lastPosition = positions.get(positions.size() - 1);
+
+        Position lastInternship = null;
+        Position firstFullTime = null;
+        Position lastFullTime = null;
+        for (Position p : positions) {
+            if ("internship".equalsIgnoreCase(p.getType())) {
+                lastInternship = p;
+            } else {
+                if (firstFullTime == null) {
+                    firstFullTime = p;
+                }
+                lastFullTime = p;
+            }
+        }
+
+        boolean hasInternship = lastInternship != null;
+        boolean hasFullTime = lastFullTime != null;
+        boolean converted = hasInternship && hasFullTime;
+
+        target.setRole(lastPosition.getTitle());
+        target.setType(firstNonBlank(lastPosition.getType(), "full-time"));
+        target.setInternshipStipend(lastInternship != null ? lastInternship.getStipend() : null);
+        target.setFullTimePackage(lastFullTime != null ? lastFullTime.getCtc() : null);
+        target.setJoinDate(firstPosition.getStartDate());
+        target.setEndDate(lastPosition.getEndDate());
+        target.setConverted(converted);
+        if (converted && firstFullTime != null) {
+            target.setConversionDate(firstNonBlank(firstFullTime.getStartDate(), target.getConversionDate()));
+            if (isBlank(target.getConversionType())) {
+                target.setConversionType("PPO");
+            }
+        }
+        target.setPackageValue(chooseEffectivePackage(
+                target.getType(),
+                target.getInternshipStipend(),
+                target.getFullTimePackage()));
     }
 
     private void syncStudentPlacementSnapshot(String studentId) {
@@ -129,6 +248,14 @@ public class StudentCompanyController {
         List<StudentCompany> studentCompanies = studentCompanyService.getStudentCompanies(studentId);
         StudentCompany active = pickActiveCompany(studentCompanies);
         if (active == null) {
+            // No company records left (or none currently active): reset the student
+            // back to an unplaced state and clear the cached company fields.
+            if (studentCompanies.isEmpty()) {
+                student.setCompany(null);
+                student.setCompanyLogo(null);
+                student.setStatus("UNPLACED");
+                studentRepository.save(student);
+            }
             return;
         }
 
@@ -189,6 +316,7 @@ public class StudentCompanyController {
         dto.setEndDate(studentCompany.getEndDate());
         dto.setType(studentCompany.getType());
         dto.setDuration(studentCompany.getDuration());
+        dto.setPositions(PositionDTO.deriveFrom(studentCompany));
 
         String effectivePackage = firstNonBlank(
                 studentCompany.getPackageValue(),

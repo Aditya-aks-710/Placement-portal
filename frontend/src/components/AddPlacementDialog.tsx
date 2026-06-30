@@ -39,21 +39,40 @@ import { toast } from "sonner";
 
 type AddPlacementDialogProps = {
   trigger: React.ReactNode;
+  studentId?: string;
 };
 
 const currentYear = new Date().getFullYear();
 
-const AddPlacementDialog = ({ trigger }: AddPlacementDialogProps) => {
+const ENGAGEMENT_OPTIONS = [
+  { value: "2M", label: "2 Month Internship", needsStipend: true, needsCtc: false },
+  { value: "6M", label: "6 Month Internship", needsStipend: true, needsCtc: false },
+  { value: "6M+PPO", label: "6 Month + PPO", needsStipend: true, needsCtc: true },
+  { value: "6M+FTE", label: "6 Month + FTE", needsStipend: true, needsCtc: true },
+  { value: "FTE", label: "Full-Time (FTE)", needsStipend: false, needsCtc: true },
+] as const;
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+const AddPlacementDialog = ({ trigger, studentId }: AddPlacementDialogProps) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [companyName, setCompanyName] = useState("");
   const [companyPickerOpen, setCompanyPickerOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const [role, setRole] = useState("");
+  const [engagementType, setEngagementType] = useState("FTE");
+  const [stipend, setStipend] = useState("");
   const [ctc, setCtc] = useState("");
   const [placementYear, setPlacementYear] = useState(String(currentYear));
+  const [startMonth, setStartMonth] = useState("");
   const [campusMode, setCampusMode] = useState("On-Campus");
-  const [placementNature, setPlacementNature] = useState("Full-Time");
+
+  const engagement = ENGAGEMENT_OPTIONS.find((e) => e.value === engagementType) ?? ENGAGEMENT_OPTIONS[4];
+  const placementNature = engagementType === "FTE" ? "Full-Time" : "Internship";
 
   const { data: companies = [], isLoading: companiesLoading } = useQuery({
     queryKey: ["companies"],
@@ -73,19 +92,26 @@ const AddPlacementDialog = ({ trigger }: AddPlacementDialogProps) => {
     setCompanyName("");
     setCompanySearch("");
     setRole("");
+    setEngagementType("FTE");
+    setStipend("");
     setCtc("");
     setPlacementYear(String(currentYear));
+    setStartMonth("");
     setCampusMode("On-Campus");
-    setPlacementNature("Full-Time");
   };
 
   const mutation = useMutation({
     mutationFn: () =>
       submitPlacementRequest({
+        studentId,
         companyName: companyName.trim(),
         role: role.trim(),
-        ctc: Number(ctc),
+        engagementType,
+        requestType: "PLACEMENT",
+        stipend: engagement.needsStipend ? Number(stipend) : undefined,
+        ctc: engagement.needsCtc ? Number(ctc) : undefined,
         placementYear: Number(placementYear),
+        startMonth: startMonth || undefined,
         campusMode,
         placementNature,
       }),
@@ -109,8 +135,12 @@ const AddPlacementDialog = ({ trigger }: AddPlacementDialogProps) => {
       toast.error("Role is required");
       return;
     }
-    if (!ctc || Number.isNaN(Number(ctc)) || Number(ctc) <= 0) {
-      toast.error("Enter a valid CTC");
+    if (engagement.needsStipend && (!stipend || Number.isNaN(Number(stipend)) || Number(stipend) <= 0)) {
+      toast.error("Enter a valid monthly stipend (in ₹K)");
+      return;
+    }
+    if (engagement.needsCtc && (!ctc || Number.isNaN(Number(ctc)) || Number(ctc) <= 0)) {
+      toast.error("Enter a valid CTC (LPA)");
       return;
     }
     mutation.mutate();
@@ -213,21 +243,71 @@ const AddPlacementDialog = ({ trigger }: AddPlacementDialogProps) => {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label>Engagement Type</Label>
+            <Select value={engagementType} onValueChange={setEngagementType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ENGAGEMENT_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            {engagement.needsStipend && (
+              <div className="space-y-2">
+                <Label htmlFor="pl-stipend">Stipend (₹K / month)</Label>
+                <Input
+                  id="pl-stipend"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={stipend}
+                  onChange={(e) => setStipend(e.target.value)}
+                  placeholder="e.g. 45"
+                />
+              </div>
+            )}
+            {engagement.needsCtc && (
+              <div className="space-y-2">
+                <Label htmlFor="pl-ctc">CTC (LPA)</Label>
+                <Input
+                  id="pl-ctc"
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={ctc}
+                  onChange={(e) => setCtc(e.target.value)}
+                  placeholder="e.g. 12"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="pl-ctc">CTC (LPA)</Label>
-              <Input
-                id="pl-ctc"
-                type="number"
-                min="0"
-                step="0.1"
-                value={ctc}
-                onChange={(e) => setCtc(e.target.value)}
-                placeholder="e.g. 12"
-              />
+              <Label>Start Month (optional)</Label>
+              <Select value={startMonth} onValueChange={setStartMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="pl-year">Placement Year</Label>
+              <Label htmlFor="pl-year">{placementNature === "Internship" ? "Internship Year" : "Placement Year"}</Label>
               <Input
                 id="pl-year"
                 type="number"
@@ -237,31 +317,17 @@ const AddPlacementDialog = ({ trigger }: AddPlacementDialogProps) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Campus Mode</Label>
-              <Select value={campusMode} onValueChange={setCampusMode}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="On-Campus">On-Campus</SelectItem>
-                  <SelectItem value="Off-Campus">Off-Campus</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Nature</Label>
-              <Select value={placementNature} onValueChange={setPlacementNature}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Full-Time">Full-Time</SelectItem>
-                  <SelectItem value="Internship">Internship</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-2">
+            <Label>Campus Mode</Label>
+            <Select value={campusMode} onValueChange={setCampusMode}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="On-Campus">On-Campus</SelectItem>
+                <SelectItem value="Off-Campus">Off-Campus</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <DialogFooter>

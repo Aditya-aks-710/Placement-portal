@@ -1,5 +1,7 @@
 package com.nit.placement_portal.model;
 
+import java.util.List;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -22,6 +24,11 @@ public class StudentCompany {
     private Boolean converted;
     private String conversionType; // "PPO", "FTE", etc.
     private String conversionDate;
+
+    // LinkedIn-style role timeline. When present this is the source of truth for
+    // the roles held at this company; the flat fields above are kept in sync for
+    // status/list rendering and backward compatibility.
+    private List<Position> positions;
 
     // Getters and Setters
     public String getId() {
@@ -134,5 +141,13 @@ public class StudentCompany {
 
     public void setConversionDate(String conversionDate) {
         this.conversionDate = conversionDate;
+    }
+
+    public List<Position> getPositions() {
+        return positions;
+    }
+
+    public void setPositions(List<Position> positions) {
+        this.positions = positions;
     }
 }
