@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Loader2 } from "lucide-react";
+import { Plus, Trash2, Loader2, Check } from "lucide-react";
 import { submitInterviewExperience, type InterviewRoundInput } from "@/lib/api";
 import { toast } from "sonner";
 
@@ -30,19 +30,51 @@ const emptyRound = (): RoundDraft => ({ name: "", description: "", tips: "" });
 
 type AddExperienceDialogProps = {
   trigger: React.ReactNode;
+  studentId?: string;
+  companyOptions?: string[];
 };
 
-const AddExperienceDialog = ({ trigger }: AddExperienceDialogProps) => {
+const AddExperienceDialog = ({ trigger, studentId, companyOptions = [] }: AddExperienceDialogProps) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [company, setCompany] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [difficulty, setDifficulty] = useState<"Easy" | "Medium" | "Hard">("Medium");
   const [rating, setRating] = useState(4);
   const [overallTips, setOverallTips] = useState("");
   const [rounds, setRounds] = useState<RoundDraft[]>([emptyRound()]);
 
+  // Stable key so re-renders with a fresh array reference don't wipe user input.
+  const optionsKey = companyOptions.join("|");
+
+  // Start with an empty field each time the dialog opens.
+  useEffect(() => {
+    if (open) {
+      setCompany("");
+      setShowSuggestions(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, optionsKey]);
+
+  // "Placed here" is true only when the typed company matches a placed company.
+  const placedHere = companyOptions.some(
+    (c) => c.trim().toLowerCase() === company.trim().toLowerCase(),
+  );
+
+  // Filter placed companies by what's typed, ranking prefix matches first.
+  const query = company.trim().toLowerCase();
+  const suggestions = companyOptions
+    .filter((c) => c.toLowerCase().includes(query))
+    .sort((a, b) => {
+      const aStarts = a.toLowerCase().startsWith(query) ? 0 : 1;
+      const bStarts = b.toLowerCase().startsWith(query) ? 0 : 1;
+      if (aStarts !== bStarts) return aStarts - bStarts;
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+
   const reset = () => {
     setCompany("");
+    setShowSuggestions(false);
     setDifficulty("Medium");
     setRating(4);
     setOverallTips("");
@@ -53,6 +85,8 @@ const AddExperienceDialog = ({ trigger }: AddExperienceDialogProps) => {
     mutationFn: () =>
       submitInterviewExperience({
         company: company.trim(),
+        studentId,
+        placedHere,
         difficulty,
         rating,
         overallTips: overallTips.trim(),
@@ -102,14 +136,50 @@ const AddExperienceDialog = ({ trigger }: AddExperienceDialogProps) => {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div className="relative space-y-2">
             <Label htmlFor="exp-company">Company</Label>
             <Input
               id="exp-company"
               value={company}
-              onChange={(e) => setCompany(e.target.value)}
+              onChange={(e) => {
+                setCompany(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setShowSuggestions(false)}
               placeholder="e.g. Google"
+              autoComplete="off"
             />
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="absolute inset-x-0 top-full z-50 mt-1 max-h-48 overflow-y-auto rounded-md border border-border bg-popover py-1 shadow-md">
+                {suggestions.map((c) => (
+                  <li key={c}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        setCompany(c);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      {c}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {company.trim() && (
+              placedHere ? (
+                <p className="flex items-center gap-1.5 text-xs text-accent">
+                  <Check className="h-3.5 w-3.5" /> A company you were placed at &mdash; this will be marked &ldquo;Placed here&rdquo;.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Not one of your placed companies &mdash; it won&rsquo;t be marked &ldquo;Placed here&rdquo;.
+                </p>
+              )
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

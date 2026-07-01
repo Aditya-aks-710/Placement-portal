@@ -518,6 +518,7 @@ public class StudentService {
         dto.setOverallTips(experience.getOverallTips());
         dto.setDifficulty(experience.getDifficulty());
         dto.setRating(experience.getRating() == null ? null : Math.round(experience.getRating()));
+        dto.setPlacedHere(experience.getPlacedHere());
 
         List<PublicInterviewRoundDTO> rounds = new ArrayList<>();
         if (experience.getRounds() != null) {

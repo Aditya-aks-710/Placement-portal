@@ -54,14 +54,31 @@ public class InterviewExperienceController {
                         .orElseThrow(
                                 () -> new ResourceNotFoundException("User not found"));
 
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        // Determine whose profile this experience belongs to. Admins may post to any
+        // student's profile; students may only post to their own.
+        String targetStudentId = dto.getStudentId();
+        if (targetStudentId == null || targetStudentId.isBlank()) {
+            targetStudentId = user.getStudentId();
+        } else if (!isAdmin && !targetStudentId.equals(user.getStudentId())) {
+            throw new UnauthorizedException("You can only add experiences to your own profile");
+        }
+
+        if (targetStudentId == null || targetStudentId.isBlank()) {
+            throw new UnauthorizedException("No student profile is associated with this account");
+        }
+
         InterviewExperience experience = new InterviewExperience();
-        experience.setStudentId(user.getStudentId());
+        experience.setStudentId(targetStudentId);
         experience.setPlacementId(dto.getPlacementId());
         experience.setCompanyName(dto.getCompany());
         experience.setRounds(toRounds(dto.getRounds()));
         experience.setOverallTips(dto.getOverallTips());
         experience.setDifficulty(dto.getDifficulty());
         experience.setRating(dto.getRating() == null ? null : dto.getRating().floatValue());
+        experience.setPlacedHere(dto.getPlacedHere());
 
         InterviewExperience saved = interviewExperienceRepository.save(experience);
         return toPublicDTO(saved);
@@ -122,6 +139,7 @@ public class InterviewExperienceController {
         dto.setOverallTips(experience.getOverallTips());
         dto.setDifficulty(experience.getDifficulty());
         dto.setRating(experience.getRating() == null ? null : Math.round(experience.getRating()));
+        dto.setPlacedHere(experience.getPlacedHere());
 
         List<PublicInterviewRoundDTO> rounds = new ArrayList<>();
         if (experience.getRounds() != null) {

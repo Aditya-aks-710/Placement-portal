@@ -24,6 +24,8 @@ public class InterviewExperience {
 
     private Float rating;
 
+    private Boolean placedHere;
+
     public String getId() {
         return id;
     }
@@ -86,5 +88,13 @@ public class InterviewExperience {
 
     public void setRating(Float rating) {
         this.rating = rating;
+    }
+
+    public Boolean getPlacedHere() {
+        return placedHere;
+    }
+
+    public void setPlacedHere(Boolean placedHere) {
+        this.placedHere = placedHere;
     }
 }

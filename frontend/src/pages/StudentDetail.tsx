@@ -28,6 +28,7 @@ import { useAuth } from "@/lib/auth";
 import AddExperienceDialog from "@/components/AddExperienceDialog";
 import AddPlacementDialog from "@/components/AddPlacementDialog";
 import ConvertEngagementDialog from "@/components/ConvertEngagementDialog";
+import ProgressEngagementDialog from "@/components/ProgressEngagementDialog";
 import PositionTimeline from "@/components/PositionTimeline";
 import ManagePositionsDialog from "@/components/ManagePositionsDialog";
 
@@ -142,6 +143,15 @@ const StudentDetail = () => {
   ];
   const colorIndex = student.name.charCodeAt(0) % colors.length;
 
+  // Companies the student was placed at, offered as suggestions when sharing an experience.
+  const companyOptions = Array.from(
+    new Set(
+      [student.currentCompany?.name, ...student.pastCompanies.map((c) => c.name)].filter(
+        (name): name is string => !!name,
+      ),
+    ),
+  );
+
   const tabs = [
     { key: "overview" as const, label: "Overview" },
     { key: "interviews" as const, label: "Interview Experiences" },
@@ -163,7 +173,7 @@ const StudentDetail = () => {
             Back
           </button>
 
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-5 min-w-0">
               <div
                 className={`flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${colors[colorIndex]} text-2xl font-bold text-white shadow-xl`}
@@ -200,22 +210,15 @@ const StudentDetail = () => {
                     </Button>
                   }
                 />
-                <AddExperienceDialog
-                  trigger={
-                    <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto">
-                      <Edit className="mr-2 h-4 w-4" />
-                      Share Experience
-                    </Button>
-                  }
-                />
               </div>
             ) : !isAuthenticated ? (
               <Button
                 onClick={() => navigate("/login")}
-                className="w-full bg-accent text-accent-foreground hover:bg-accent/90 sm:w-auto lg:shrink-0"
+                aria-label="Edit Profile"
+                className="w-full sm:w-auto bg-accent text-accent-foreground hover:bg-accent/90 lg:shrink-0"
               >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Profile
+                <Edit className="h-4 w-4 mr-2 sm:mr-0 lg:mr-2" />
+                <span className="inline sm:hidden lg:inline">Edit Profile</span>
               </Button>
             ) : null}
           </div>
@@ -297,7 +300,11 @@ const StudentDetail = () => {
                   {canEdit &&
                     student.currentCompany.type === "internship" &&
                     !student.currentCompany.converted && (
-                      <div className="mt-5 border-t border-border/40 pt-4">
+                      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-border/40 pt-4">
+                        <ProgressEngagementDialog
+                          company={student.currentCompany}
+                          studentId={student.id}
+                        />
                         <ConvertEngagementDialog company={student.currentCompany} studentId={student.id} />
                       </div>
                     )}
@@ -403,11 +410,16 @@ const StudentDetail = () => {
 
         {activeTab === "interviews" && (
           <div className="space-y-6 animate-fade-in">
-            {canEdit && (
-              <div className="flex justify-end">
+            {student.interviewExperiences.length > 0 && canEdit && (
+              <div className="elevated-card rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Share another interview experience to help juniors prepare.
+                </p>
                 <AddExperienceDialog
+                  studentId={student.id}
+                  companyOptions={companyOptions}
                   trigger={
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Share your experience
                     </Button>
@@ -419,11 +431,23 @@ const StudentDetail = () => {
               <div className="elevated-card rounded-xl p-12 text-center">
                 <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/30" />
                 <p className="mt-3 text-muted-foreground">No interview experiences shared yet.</p>
+                {canEdit && (
+                  <AddExperienceDialog
+                    studentId={student.id}
+                    companyOptions={companyOptions}
+                    trigger={
+                      <Button variant="outline" size="sm" className="mt-5">
+                        <MessageSquare className="mr-2 h-4 w-4" />
+                        Share your experience
+                      </Button>
+                    }
+                  />
+                )}
               </div>
             ) : (
               student.interviewExperiences.map((exp, i) => (
                 <div key={i} className="elevated-card rounded-xl p-6">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
                       <h2 className="font-display text-xl font-bold text-foreground">{exp.company}</h2>
                       <div className="mt-1 flex items-center gap-3 text-sm">
@@ -437,6 +461,9 @@ const StudentDetail = () => {
                         </span>
                       </div>
                     </div>
+                    {exp.placedHere && (
+                      <Badge variant="secondary" className="shrink-0">Placed here</Badge>
+                    )}
                   </div>
 
                   <div className="mt-6 space-y-4">

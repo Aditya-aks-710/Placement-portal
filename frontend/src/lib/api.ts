@@ -464,6 +464,8 @@ export type InterviewExperienceInput = {
   difficulty: "Easy" | "Medium" | "Hard";
   rating: number;
   placementId?: string;
+  studentId?: string;
+  placedHere?: boolean;
 };
 
 export async function submitInterviewExperience(input: InterviewExperienceInput): Promise<unknown> {

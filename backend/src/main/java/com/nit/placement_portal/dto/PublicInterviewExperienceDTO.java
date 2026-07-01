@@ -8,6 +8,7 @@ public class PublicInterviewExperienceDTO {
     private String overallTips;
     private String difficulty;
     private Integer rating;
+    private Boolean placedHere;
 
     public String getCompany() {
         return company;
@@ -47,5 +48,13 @@ public class PublicInterviewExperienceDTO {
 
     public void setRating(Integer rating) {
         this.rating = rating;
+    }
+
+    public Boolean getPlacedHere() {
+        return placedHere;
+    }
+
+    public void setPlacedHere(Boolean placedHere) {
+        this.placedHere = placedHere;
     }
 }

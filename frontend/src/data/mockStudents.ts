@@ -38,6 +38,7 @@ export interface InterviewExperience {
   overallTips: string;
   difficulty: "Easy" | "Medium" | "Hard";
   rating: number;
+  placedHere?: boolean;
 }
 
 export interface Education {

@@ -18,6 +18,8 @@ public class InterviewExperienceDTO {
 
     private Integer rating;
 
+    private Boolean placedHere;
+
     public String getStudentId() {
         return studentId;
     }
@@ -72,5 +74,13 @@ public class InterviewExperienceDTO {
 
     public void setOverallTips(String overallTips) {
         this.overallTips = overallTips;
+    }
+
+    public Boolean getPlacedHere() {
+        return placedHere;
+    }
+
+    public void setPlacedHere(Boolean placedHere) {
+        this.placedHere = placedHere;
     }
 }
